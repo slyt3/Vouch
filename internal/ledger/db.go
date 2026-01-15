@@ -169,9 +169,11 @@ func (db *DB) GetAllEvents(runID string) ([]proxy.Event, error) {
 			return nil, fmt.Errorf("parsing timestamp: %w", err)
 		}
 		e.Timestamp = t
+		e.TaskID = taskID
+		e.TaskState = taskState
 
 		// Parse JSON fields
-		if params != "" {
+		if params != "" && params != "null" {
 			var paramsMap map[string]interface{}
 			if err := json.Unmarshal([]byte(params), &paramsMap); err != nil {
 				return nil, fmt.Errorf("parsing params JSON: %w", err)
@@ -179,7 +181,7 @@ func (db *DB) GetAllEvents(runID string) ([]proxy.Event, error) {
 			e.Params = paramsMap
 		}
 
-		if response != "" {
+		if response != "" && response != "null" {
 			var responseMap map[string]interface{}
 			if err := json.Unmarshal([]byte(response), &responseMap); err != nil {
 				return nil, fmt.Errorf("parsing response JSON: %w", err)
@@ -233,6 +235,9 @@ func (db *DB) GetRecentEvents(runID string, limit int) ([]proxy.Event, error) {
 			return nil, fmt.Errorf("scanning event: %w", err)
 		}
 
+		e.TaskID = taskID
+		e.TaskState = taskState
+
 		events = append(events, e)
 	}
 
@@ -261,6 +266,9 @@ func (db *DB) GetEventByID(eventID string) (*proxy.Event, error) {
 	if err != nil {
 		return nil, fmt.Errorf("querying event: %w", err)
 	}
+
+	e.TaskID = taskID
+	e.TaskState = taskState
 
 	return &e, nil
 }

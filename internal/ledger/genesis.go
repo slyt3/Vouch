@@ -75,20 +75,10 @@ func CreateGenesisBlock(db *DB, signer *crypto.Signer, agentName string) (string
 
 // insertEvent is a helper to insert an event into the database
 func insertEvent(db *DB, event proxy.Event) error {
-	paramsJSON := "{}"
-	responseJSON := "{}"
-
-	if event.Params != nil {
-		if bytes, err := json.Marshal(event.Params); err == nil {
-			paramsJSON = string(bytes)
-		}
-	}
-
-	if event.Response != nil {
-		if bytes, err := json.Marshal(event.Response); err == nil {
-			responseJSON = string(bytes)
-		}
-	}
+	paramsBytes, _ := json.Marshal(event.Params)
+	responseBytes, _ := json.Marshal(event.Response)
+	paramsJSON := string(paramsBytes)
+	responseJSON := string(responseBytes)
 
 	return db.InsertEvent(
 		event.ID,
