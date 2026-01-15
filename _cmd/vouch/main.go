@@ -27,7 +27,7 @@ type VouchProxy struct {
 }
 
 func main() {
-	log.Printf("Vouch (Agent Analytics & Safety) - Phase 1: The Interceptor")
+	log.Print("Vouch (Agent Analytics & Safety) - Phase 1: The Interceptor")
 	log.Printf("%s", "========================================================")
 
 	// Initialize policy engine
@@ -71,10 +71,10 @@ func main() {
 
 	// Start server
 	listenAddr := ":9999"
-	log.Printf("[INFO] Proxying :9999 -> :8080")
-	log.Printf("[INFO] Event buffer size: 1000")
-	log.Printf("[INFO] Policy engine: ACTIVE")
-	log.Println("========================================================")
+	log.Print("[INFO] Proxying :9999 -> :8080")
+	log.Print("[INFO] Event buffer size: 1000")
+	log.Print("[INFO] Policy engine: ACTIVE")
+	log.Print("========================================================")
 	log.Printf("[INFO] Ready to intercept MCP traffic on %s\n", listenAddr)
 
 	if err := http.ListenAndServe(listenAddr, reverseProxy); err != nil {
@@ -113,7 +113,7 @@ func (v *VouchProxy) interceptRequest(req *http.Request) {
 
 		// Log the stall
 		log.Println("========================================================")
-		log.Printf("[STALL] Policy violation detected")
+		log.Print("[STALL] Policy violation detected")
 		log.Printf("[STALL] Method: %s", mcpReq.Method)
 		log.Printf("[STALL] Policy: %s (Risk: %s)", matchedRule.ID, matchedRule.RiskLevel)
 		log.Printf("[STALL] Event ID: %s", eventID)

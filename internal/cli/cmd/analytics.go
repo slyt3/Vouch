@@ -55,7 +55,7 @@ func EventsCommand() {
 		e := events[i]
 		fmt.Printf("[%d] %s | %s | %s\n", e.SeqIndex, e.ID[:8], e.EventType, e.Method)
 		if e.WasBlocked {
-			fmt.Printf("    BLOCKED\n")
+			fmt.Print("    BLOCKED\n")
 		}
 	}
 }

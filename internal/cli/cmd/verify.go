@@ -46,7 +46,7 @@ func VerifyCommand() {
 	if result.Valid {
 		fmt.Printf("✓ Chain is valid (%d events verified)\n", result.TotalEvents)
 	} else {
-		fmt.Printf("✗ Chain verification failed\n")
+		fmt.Print("✗ Chain verification failed\n")
 		fmt.Printf("  Error: %s\n", result.ErrorMessage)
 		if result.FailedAtSeq > 0 {
 			fmt.Printf("  Failed at sequence: %d\n", result.FailedAtSeq)

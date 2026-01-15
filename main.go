@@ -58,14 +58,14 @@ func main() {
 		mux.HandleFunc("/api/reject/", apiHandlers.HandleReject)
 		mux.HandleFunc("/api/rekey", apiHandlers.HandleRekey)
 		mux.HandleFunc("/api/metrics", apiHandlers.HandleStats)
-		log.Printf("Admin API: :9998")
+		log.Print("Admin API: :9998")
 		if err := http.ListenAndServe(":9998", mux); err != nil {
 			log.Fatalf("API server error: %v", err)
 		}
 	}()
 
 	// 8. Start Proxy Server
-	log.Printf("Proxy Server: :9999 -> :8080")
+	log.Print("Proxy Server: :9999 -> :8080")
 	if err := http.ListenAndServe(":9999", reverseProxy); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
