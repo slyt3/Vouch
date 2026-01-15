@@ -20,7 +20,7 @@ func TestVerifyChain(t *testing.T) {
 	defer func() { _ = os.Chdir(oldWd) }()
 
 	schemaContent, _ := os.ReadFile(filepath.Join(oldWd, "../../schema.sql"))
-	os.WriteFile("schema.sql", schemaContent, 0644)
+	_ = os.WriteFile("schema.sql", schemaContent, 0644)
 
 	db, _ := NewDB("ael.db")
 	defer db.Close()
