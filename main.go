@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -18,7 +16,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/yourname/ael/internal/ledger"
 	"github.com/yourname/ael/internal/proxy"
-	"gopkg.in/yaml.v3"
 )
 
 // MCPRequest represents a Model Context Protocol JSON-RPC request
@@ -37,34 +34,12 @@ type MCPResponse struct {
 	Error   map[string]interface{} `json:"error,omitempty"`
 }
 
-// PolicyConfig represents the ael-policy.yaml structure
-type PolicyConfig struct {
-	Version  string `yaml:"version"`
-	Defaults struct {
-		RetentionDays  int    `yaml:"retention_days"`
-		SigningEnabled bool   `yaml:"signing_enabled"`
-		LogLevel       string `yaml:"log_level"`
-	} `yaml:"defaults"`
-	Policies []PolicyRule `yaml:"policies"`
-}
-
-// PolicyRule represents a single policy rule
-type PolicyRule struct {
-	ID             string                 `yaml:"id"`
-	MatchMethods   []string               `yaml:"match_methods"`
-	RiskLevel      string                 `yaml:"risk_level"`
-	Action         string                 `yaml:"action"`
-	ProofOfRefusal bool                   `yaml:"proof_of_refusal"`
-	LogLevel       string                 `yaml:"log_level,omitempty"`
-	Conditions     map[string]interface{} `yaml:"conditions,omitempty"`
-}
-
 // AELProxy is the main proxy server
 type AELProxy struct {
 	proxy        *httputil.ReverseProxy
 	worker       *ledger.Worker
 	activeTasks  *sync.Map
-	policy       *PolicyConfig
+	policy       *proxy.PolicyConfig
 	stallSignals *sync.Map // Maps event ID to approval channel
 }
 
@@ -72,7 +47,7 @@ func main() {
 	log.Println("AEL (Agent Execution Ledger) - Phase 1: The Interceptor")
 
 	// Load policy
-	policy, err := loadPolicy("ael-policy.yaml")
+	policy, err := proxy.LoadPolicy("ael-policy.yaml")
 	if err != nil {
 		log.Fatalf("Failed to load policy: %v", err)
 	}
@@ -140,29 +115,6 @@ func main() {
 	if err := http.ListenAndServe(listenAddr, proxy); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
-}
-
-// loadPolicy loads the ael-policy.yaml file
-func loadPolicy(path string) (*PolicyConfig, error) {
-	// Try absolute path first, then relative
-	if !filepath.IsAbs(path) {
-		wd, err := os.Getwd()
-		if err == nil {
-			path = filepath.Join(wd, path)
-		}
-	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("reading policy file: %w", err)
-	}
-
-	var config PolicyConfig
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("parsing policy YAML: %w", err)
-	}
-
-	return &config, nil
 }
 
 // interceptRequest intercepts and analyzes incoming requests
@@ -308,7 +260,7 @@ func (a *AELProxy) interceptResponse(resp *http.Response) error {
 }
 
 // shouldStallMethod checks if a method should be stalled based on policy
-func (a *AELProxy) shouldStallMethod(method string, params map[string]interface{}) (bool, *PolicyRule) {
+func (a *AELProxy) shouldStallMethod(method string, params map[string]interface{}) (bool, *proxy.PolicyRule) {
 	for _, rule := range a.policy.Policies {
 		if rule.Action != "stall" {
 			continue
@@ -316,10 +268,10 @@ func (a *AELProxy) shouldStallMethod(method string, params map[string]interface{
 
 		// Check method match with wildcard support
 		for _, pattern := range rule.MatchMethods {
-			if matchPattern(pattern, method) {
+			if proxy.MatchPattern(pattern, method) {
 				// Check additional conditions if present
 				if rule.Conditions != nil {
-					if !a.checkConditions(rule.Conditions, params) {
+					if !proxy.CheckConditions(rule.Conditions, params) {
 						continue
 					}
 				}
@@ -328,34 +280,6 @@ func (a *AELProxy) shouldStallMethod(method string, params map[string]interface{
 		}
 	}
 	return false, nil
-}
-
-// matchPattern matches a method against a pattern with wildcard support
-func matchPattern(pattern, method string) bool {
-	if pattern == method {
-		return true
-	}
-
-	// Handle wildcard patterns (e.g., "aws:*")
-	if strings.HasSuffix(pattern, "*") {
-		prefix := strings.TrimSuffix(pattern, "*")
-		return strings.HasPrefix(method, prefix)
-	}
-
-	return false
-}
-
-// checkConditions evaluates policy conditions against request parameters
-func (a *AELProxy) checkConditions(conditions map[string]interface{}, params map[string]interface{}) bool {
-	// Check amount_gt condition for financial operations
-	if amountGt, ok := conditions["amount_gt"].(int); ok {
-		if amount, ok := params["amount"].(float64); ok {
-			return amount > float64(amountGt)
-		}
-	}
-
-	// Default: condition not met
-	return true
 }
 
 // handleApprove handles approval requests from the CLI

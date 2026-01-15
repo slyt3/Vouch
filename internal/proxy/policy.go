@@ -68,3 +68,16 @@ func MatchPattern(pattern, method string) bool {
 
 	return false
 }
+
+// CheckConditions evaluates policy conditions against request parameters
+func CheckConditions(conditions map[string]interface{}, params map[string]interface{}) bool {
+	// Check amount_gt condition for financial operations
+	if amountGt, ok := conditions["amount_gt"].(int); ok {
+		if amount, ok := params["amount"].(float64); ok {
+			return amount > float64(amountGt)
+		}
+	}
+
+	// Default: condition not met
+	return true
+}
