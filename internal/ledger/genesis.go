@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/yourname/ael/internal/crypto"
-	"github.com/yourname/ael/internal/proxy"
+	"github.com/yourname/vouch/internal/crypto"
+	"github.com/yourname/vouch/internal/proxy"
 )
 
 // CreateGenesisBlock creates the initial genesis event for a new run
@@ -23,7 +23,7 @@ func CreateGenesisBlock(db *DB, signer *crypto.Signer, agentName string) (string
 		Timestamp: time.Now(),
 		Actor:     "system",
 		EventType: "genesis",
-		Method:    "ael:init",
+		Method:    "vouch:init",
 		Params: map[string]interface{}{
 			"public_key": signer.GetPublicKey(),
 			"agent_name": agentName,

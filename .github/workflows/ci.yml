@@ -18,9 +18,9 @@ jobs:
         check-latest: true
     - run: go mod download
     - name: Build Proxy
-      run: go build -v -o ael-proxy .
+      run: go build -v -o vouch-proxy .
     - name: Build CLI
-      run: go build -v -o ael-cli ./cmd/ael-cli
+      run: go build -v -o vouch-cli ./cmd/vouch-cli
     - name: Run All Tests
       run: go test -v ./...
 

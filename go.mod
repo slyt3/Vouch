@@ -1,4 +1,4 @@
-module github.com/yourname/ael
+module github.com/yourname/vouch
 
 go 1.22.5
 

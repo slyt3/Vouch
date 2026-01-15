@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yourname/ael/internal/crypto"
-	"github.com/yourname/ael/internal/proxy"
+	"github.com/yourname/vouch/internal/crypto"
+	"github.com/yourname/vouch/internal/proxy"
 )
 
 func TestVerifyChain(t *testing.T) {
 	// Setup
-	tmpDir, _ := os.MkdirTemp("", "ael-verify-test-*")
+	tmpDir, _ := os.MkdirTemp("", "vouch-verify-test-*")
 	defer os.RemoveAll(tmpDir)
 
 	oldWd, _ := os.Getwd()
@@ -22,10 +22,10 @@ func TestVerifyChain(t *testing.T) {
 	schemaContent, _ := os.ReadFile(filepath.Join(oldWd, "../../schema.sql"))
 	_ = os.WriteFile("schema.sql", schemaContent, 0644)
 
-	db, _ := NewDB("ael.db")
+	db, _ := NewDB("vouch.db")
 	defer db.Close()
 
-	signer, _ := crypto.NewSigner(".ael_key")
+	signer, _ := crypto.NewSigner(".vouch_key")
 
 	// Create valid chain
 	agentName := "test-agent"

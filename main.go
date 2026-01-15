@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/yourname/ael/internal/ledger"
-	"github.com/yourname/ael/internal/proxy"
+	"github.com/yourname/vouch/internal/ledger"
+	"github.com/yourname/vouch/internal/proxy"
 )
 
 // MCPRequest represents a Model Context Protocol JSON-RPC request
@@ -34,8 +34,8 @@ type MCPResponse struct {
 	Error   map[string]interface{} `json:"error,omitempty"`
 }
 
-// AELProxy is the main proxy server
-type AELProxy struct {
+// VouchProxy is the main proxy server
+type VouchProxy struct {
 	proxy           *httputil.ReverseProxy
 	worker          *ledger.Worker
 	activeTasks     *sync.Map // task_id -> state
@@ -45,10 +45,10 @@ type AELProxy struct {
 }
 
 func main() {
-	log.Println("AEL (Agent Execution Ledger) - The Interceptor")
+	log.Println("Vouch (Agent Analytics & Safety) - The Interceptor")
 
 	// Load policy
-	policy, err := proxy.LoadPolicy("ael-policy.yaml")
+	policy, err := proxy.LoadPolicy("vouch-policy.yaml")
 	if err != nil {
 		log.Fatalf("Failed to load policy: %v", err)
 	}
@@ -64,7 +64,7 @@ func main() {
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 
 	// Initialize ledger worker with database and crypto
-	worker, err := ledger.NewWorker(1000, "ael.db", ".ael_key")
+	worker, err := ledger.NewWorker(1000, "vouch.db", ".vouch_key")
 	if err != nil {
 		log.Fatalf("Failed to initialize worker: %v", err)
 	}
@@ -74,8 +74,8 @@ func main() {
 		log.Fatalf("Failed to start worker: %v", err)
 	}
 
-	// Create AEL proxy
-	aelProxy := &AELProxy{
+	// Create Vouch proxy
+	vouchProxy := &VouchProxy{
 		proxy:           proxy,
 		worker:          worker,
 		activeTasks:     &sync.Map{}, // task_id -> state
@@ -88,18 +88,18 @@ func main() {
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		originalDirector(req)
-		aelProxy.interceptRequest(req)
+		vouchProxy.interceptRequest(req)
 	}
 
 	// Custom response modifier
-	proxy.ModifyResponse = aelProxy.interceptResponse
+	proxy.ModifyResponse = vouchProxy.interceptResponse
 
 	// Start API server for CLI commands (approval/rejection)
 	go func() {
 		apiMux := http.NewServeMux()
-		apiMux.HandleFunc("/api/approve/", aelProxy.handleApprove)
-		apiMux.HandleFunc("/api/reject/", aelProxy.handleReject)
-		apiMux.HandleFunc("/api/rekey", aelProxy.handleRekey)
+		apiMux.HandleFunc("/api/approve/", vouchProxy.handleApprove)
+		apiMux.HandleFunc("/api/reject/", vouchProxy.handleReject)
+		apiMux.HandleFunc("/api/rekey", vouchProxy.handleRekey)
 
 		apiAddr := ":9998"
 		log.Printf("API server listening on %s", apiAddr)
@@ -121,7 +121,7 @@ func main() {
 }
 
 // interceptRequest intercepts and analyzes incoming requests
-func (a *AELProxy) interceptRequest(req *http.Request) {
+func (v *VouchProxy) interceptRequest(req *http.Request) {
 	// Only intercept POST requests (MCP uses JSON-RPC over HTTP POST)
 	if req.Method != http.MethodPost {
 		return
@@ -151,7 +151,7 @@ func (a *AELProxy) interceptRequest(req *http.Request) {
 	}
 
 	// Check if method should be stalled (Policy Guard)
-	shouldStall, matchedRule := a.shouldStallMethod(mcpReq.Method, mcpReq.Params)
+	shouldStall, matchedRule := v.shouldStallMethod(mcpReq.Method, mcpReq.Params)
 
 	if shouldStall {
 		// Create event ID
@@ -176,28 +176,28 @@ func (a *AELProxy) interceptRequest(req *http.Request) {
 			RiskLevel:  matchedRule.RiskLevel,
 			WasBlocked: true,
 		}
-		a.worker.Submit(event)
+		v.worker.Submit(event)
 
 		// Create approval channel
 		approvalChan := make(chan bool, 1)
-		a.stallSignals.Store(eventID, approvalChan)
+		v.stallSignals.Store(eventID, approvalChan)
 
 		// Stall Intelligence: Check for previous failures in this task
 		if taskID != "" {
-			failCount, err := a.worker.GetDB().GetTaskFailureCount(taskID)
+			failCount, err := v.worker.GetDB().GetTaskFailureCount(taskID)
 			if err == nil && failCount > 0 {
 				log.Printf("⚠️ STALL INTELLIGENCE WARNING: Task %s has failed %d times in previous events.", taskID, failCount)
 			}
 		}
 
-		log.Printf("Waiting for approval... (Type 'ael approve %s' or press Enter to continue)", eventID)
+		log.Printf("Waiting for approval... (Type 'vouch approve %s' or press Enter to continue)", eventID)
 
 		// For demo purposes, we'll wait for a simple stdin signal
 		// In production, this would be handled by the CLI tool
 		go func() {
 			var input string
 			_, _ = fmt.Scanln(&input)
-			if _, ok := a.stallSignals.Load(eventID); ok {
+			if _, ok := v.stallSignals.Load(eventID); ok {
 				approvalChan <- true
 			}
 		}()
@@ -231,23 +231,23 @@ func (a *AELProxy) interceptRequest(req *http.Request) {
 
 	// Hierarchy tracking: if this task has a previous event, link it
 	if taskID != "" {
-		if parentID, ok := a.lastEventByTask.Load(taskID); ok {
+		if parentID, ok := v.lastEventByTask.Load(taskID); ok {
 			event.ParentID = parentID.(string)
 		}
-		a.lastEventByTask.Store(taskID, event.ID)
+		v.lastEventByTask.Store(taskID, event.ID)
 	}
 
 	// Track task if present
 	if taskID != "" {
-		a.activeTasks.Store(taskID, taskState)
+		v.activeTasks.Store(taskID, taskState)
 	}
 
 	// Send to async worker
-	a.worker.Submit(event)
+	v.worker.Submit(event)
 }
 
 // interceptResponse intercepts and analyzes responses
-func (a *AELProxy) interceptResponse(resp *http.Response) error {
+func (v *VouchProxy) interceptResponse(resp *http.Response) error {
 	// Read body
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -274,7 +274,7 @@ func (a *AELProxy) interceptResponse(resp *http.Response) error {
 			taskState = state
 			// Update active tasks map
 			if taskID != "" {
-				a.activeTasks.Store(taskID, taskState)
+				v.activeTasks.Store(taskID, taskState)
 			}
 		}
 	}
@@ -290,14 +290,14 @@ func (a *AELProxy) interceptResponse(resp *http.Response) error {
 	}
 
 	// Send to async worker
-	a.worker.Submit(event)
+	v.worker.Submit(event)
 
 	return nil
 }
 
 // shouldStallMethod checks if a method should be stalled based on policy
-func (a *AELProxy) shouldStallMethod(method string, params map[string]interface{}) (bool, *proxy.PolicyRule) {
-	for _, rule := range a.policy.Policies {
+func (v *VouchProxy) shouldStallMethod(method string, params map[string]interface{}) (bool, *proxy.PolicyRule) {
+	for _, rule := range v.policy.Policies {
 		if rule.Action != "stall" {
 			continue
 		}
@@ -339,8 +339,8 @@ func redactParams(params map[string]interface{}, keys []string) map[string]inter
 }
 
 // handleRekey handles key rotation requests
-func (a *AELProxy) handleRekey(w http.ResponseWriter, r *http.Request) {
-	oldPubKey, newPubKey, err := a.worker.GetSigner().RotateKey(".ael_key")
+func (v *VouchProxy) handleRekey(w http.ResponseWriter, r *http.Request) {
+	oldPubKey, newPubKey, err := v.worker.GetSigner().RotateKey(".vouch_key")
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to rotate key: %v", err), http.StatusInternalServerError)
 		return
@@ -354,7 +354,7 @@ func (a *AELProxy) handleRekey(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleApprove handles approval requests from the CLI
-func (a *AELProxy) handleApprove(w http.ResponseWriter, r *http.Request) {
+func (v *VouchProxy) handleApprove(w http.ResponseWriter, r *http.Request) {
 	// Extract event ID from URL path
 	eventID := strings.TrimPrefix(r.URL.Path, "/api/approve/")
 
@@ -364,7 +364,7 @@ func (a *AELProxy) handleApprove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Look up the approval channel
-	val, ok := a.stallSignals.Load(eventID)
+	val, ok := v.stallSignals.Load(eventID)
 	if !ok {
 		http.Error(w, "Event not found or already processed", http.StatusNotFound)
 		return
@@ -384,7 +384,7 @@ func (a *AELProxy) handleApprove(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleReject handles rejection requests from the CLI
-func (a *AELProxy) handleReject(w http.ResponseWriter, r *http.Request) {
+func (v *VouchProxy) handleReject(w http.ResponseWriter, r *http.Request) {
 	// Extract event ID from URL path
 	eventID := strings.TrimPrefix(r.URL.Path, "/api/reject/")
 
@@ -394,7 +394,7 @@ func (a *AELProxy) handleReject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Look up the approval channel
-	val, ok := a.stallSignals.Load(eventID)
+	val, ok := v.stallSignals.Load(eventID)
 	if !ok {
 		http.Error(w, "Event not found or already processed", http.StatusNotFound)
 		return

@@ -9,7 +9,7 @@ import (
 
 func TestStats(t *testing.T) {
 	// Setup temporary database
-	tmpDir, _ := os.MkdirTemp("", "ael-stats-test-*")
+	tmpDir, _ := os.MkdirTemp("", "vouch-stats-test-*")
 	defer os.RemoveAll(tmpDir)
 
 	schemaContent, _ := os.ReadFile("../../schema.sql")
@@ -19,7 +19,7 @@ func TestStats(t *testing.T) {
 	_ = os.Chdir(tmpDir)
 	defer func() { _ = os.Chdir(oldWd) }()
 
-	db, _ := NewDB("ael.db")
+	db, _ := NewDB("vouch.db")
 	defer db.Close()
 
 	runID := "run-stats-1"
@@ -29,7 +29,7 @@ func TestStats(t *testing.T) {
 
 	// Create some events
 	// 1. genesis (seq 0) - auto created by InsertRun in production but here we test InsertEvent
-	_ = db.InsertEvent("e0", runID, 0, now, "system", "genesis", "ael:init", "{}", "{}", "", "", "", "", "", "000", "h0", "s0")
+	_ = db.InsertEvent("e0", runID, 0, now, "system", "genesis", "vouch:init", "{}", "{}", "", "", "", "", "", "000", "h0", "s0")
 	// 2. tool call (low risk)
 	_ = db.InsertEvent("e1", runID, 1, now, "agent", "tool_call", "mcp:list_tools", "{}", "{}", "", "", "", "p1", "low", "h0", "h1", "s1")
 	// 3. tool call (high risk)

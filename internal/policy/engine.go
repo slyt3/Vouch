@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config represents the ael-policy.yaml structure (2026.1 spec)
+// Config represents the vouch-policy.yaml structure (2026.1 spec)
 type Config struct {
 	Version  string `yaml:"version"`
 	Defaults struct {
@@ -45,7 +45,7 @@ func NewEngine(configPath string) (*Engine, error) {
 	return &Engine{config: config}, nil
 }
 
-// loadConfig loads the ael-policy.yaml file
+// loadConfig loads the vouch-policy.yaml file
 func loadConfig(path string) (*Config, error) {
 	// Try absolute path first, then relative
 	if !filepath.IsAbs(path) {

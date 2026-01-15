@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/yourname/ael/internal/crypto"
-	"github.com/yourname/ael/internal/proxy"
+	"github.com/yourname/vouch/internal/crypto"
+	"github.com/yourname/vouch/internal/proxy"
 )
 
 // Worker processes events asynchronously without blocking the proxy
@@ -62,7 +62,7 @@ func (w *Worker) Start() error {
 
 	if !hasRuns {
 		// Create genesis block
-		runID, err := CreateGenesisBlock(w.db, w.signer, "AEL-Agent")
+		runID, err := CreateGenesisBlock(w.db, w.signer, "Vouch-Agent")
 		if err != nil {
 			return fmt.Errorf("creating genesis block: %w", err)
 		}
@@ -198,7 +198,7 @@ func (w *Worker) createTaskCompletionEvent(taskID, finalState string) {
 		ID:        uuid.New().String(),
 		Timestamp: time.Now(),
 		EventType: "task_completed",
-		Method:    "ael:task_completed",
+		Method:    "vouch:task_completed",
 		Params: map[string]interface{}{
 			"task_id":     taskID,
 			"final_state": finalState,

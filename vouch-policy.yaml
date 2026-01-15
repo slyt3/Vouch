@@ -11,7 +11,7 @@ policies:
   - id: "critical-infra"
     match_methods: ["aws:*", "gcp:*", "kubernetes:*"]
     risk_level: "high"
-    action: "stall"            # Pause proxy, wait for `ael approve`
+    action: "stall"            # Pause proxy, wait for `vouch approve`
     proof_of_refusal: true     # Always log if model is denied
 
   - id: "financial-ops"

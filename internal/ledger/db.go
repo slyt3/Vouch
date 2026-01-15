@@ -9,7 +9,7 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/yourname/ael/internal/proxy"
+	"github.com/yourname/vouch/internal/proxy"
 )
 
 // DB wraps the SQLite database connection

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/yourname/ael/internal/crypto"
+	"github.com/yourname/vouch/internal/crypto"
 )
 
 func main() {
@@ -16,10 +16,10 @@ func main() {
 		"timestamp":  "2026-01-15T16:55:00Z",
 		"actor":      "system",
 		"event_type": "genesis",
-		"method":     "ael:init",
+		"method":     "vouch:init",
 		"params": map[string]interface{}{
 			"public_key": "abc123",
-			"agent_name": "AEL-Agent",
+			"agent_name": "Vouch-Agent",
 			"version":    "1.0.0",
 		},
 	}

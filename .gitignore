@@ -1,16 +1,16 @@
 # Runtime files
-.ael_key
+.vouch_key
 *.db
 *.db-shm
 *.db-wal
 
 # Build artifacts
-/ael
-/ael-cli
-/ael-proxy
+/vouch
+/vouch-cli
+/vouch-proxy
 
 # Specification
-AEL_SPEC.txt
+VOUCH_SPEC.txt
 
 # Go build cache
 *.test

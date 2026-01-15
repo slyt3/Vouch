@@ -12,13 +12,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/yourname/ael/internal/ledger"
-	"github.com/yourname/ael/internal/policy"
-	"github.com/yourname/ael/internal/proxy"
+	"github.com/yourname/vouch/internal/ledger"
+	"github.com/yourname/vouch/internal/policy"
+	"github.com/yourname/vouch/internal/proxy"
 )
 
-// AELProxy is the main proxy server
-type AELProxy struct {
+// VouchProxy is the main proxy server
+type VouchProxy struct {
 	reverseProxy *httputil.ReverseProxy
 	ledgerWorker *ledger.Worker
 	policyEngine *policy.Engine
@@ -27,11 +27,11 @@ type AELProxy struct {
 }
 
 func main() {
-	log.Println("AEL (Agent Execution Ledger) - Phase 1: The Interceptor")
+	log.Println("Vouch (Agent Analytics & Safety) - Phase 1: The Interceptor")
 	log.Println("========================================================")
 
 	// Initialize policy engine
-	policyEngine, err := policy.NewEngine("ael-policy.yaml")
+	policyEngine, err := policy.NewEngine("vouch-policy.yaml")
 	if err != nil {
 		log.Fatalf("[ERROR] Failed to load policy: %v", err)
 	}
@@ -50,8 +50,8 @@ func main() {
 	// Create reverse proxy
 	reverseProxy := httputil.NewSingleHostReverseProxy(targetURL)
 
-	// Create AEL proxy
-	aelProxy := &AELProxy{
+	// Create Vouch proxy
+	vouchProxy := &VouchProxy{
 		reverseProxy: reverseProxy,
 		ledgerWorker: ledgerWorker,
 		policyEngine: policyEngine,
@@ -63,11 +63,11 @@ func main() {
 	originalDirector := reverseProxy.Director
 	reverseProxy.Director = func(req *http.Request) {
 		originalDirector(req)
-		aelProxy.interceptRequest(req)
+		vouchProxy.interceptRequest(req)
 	}
 
 	// Custom response modifier
-	reverseProxy.ModifyResponse = aelProxy.interceptResponse
+	reverseProxy.ModifyResponse = vouchProxy.interceptResponse
 
 	// Start server
 	listenAddr := ":9999"
@@ -83,7 +83,7 @@ func main() {
 }
 
 // interceptRequest intercepts and analyzes incoming requests
-func (a *AELProxy) interceptRequest(req *http.Request) {
+func (v *VouchProxy) interceptRequest(req *http.Request) {
 	// Only intercept POST requests (MCP uses JSON-RPC over HTTP POST)
 	if req.Method != http.MethodPost {
 		return
@@ -105,7 +105,7 @@ func (a *AELProxy) interceptRequest(req *http.Request) {
 	}
 
 	// Check if method should be stalled (Policy Guard)
-	shouldStall, matchedRule := a.policyEngine.ShouldStall(mcpReq.Method, mcpReq.Params)
+	shouldStall, matchedRule := v.policyEngine.ShouldStall(mcpReq.Method, mcpReq.Params)
 
 	if shouldStall {
 		// Create event ID
@@ -128,11 +128,11 @@ func (a *AELProxy) interceptRequest(req *http.Request) {
 			Params:     mcpReq.Params,
 			WasBlocked: true,
 		}
-		a.ledgerWorker.Submit(event)
+		v.ledgerWorker.Submit(event)
 
 		// Create approval channel
 		approvalChan := make(chan bool, 1)
-		a.stallSignals.Store(eventID, approvalChan)
+		v.stallSignals.Store(eventID, approvalChan)
 
 		log.Printf("[STALL] Waiting for approval (Event ID: %s)", eventID)
 
@@ -169,15 +169,15 @@ func (a *AELProxy) interceptRequest(req *http.Request) {
 
 	// Track task if present (SEP-1686 state machine)
 	if taskID != "" {
-		a.activeTasks.Store(taskID, taskState)
+		v.activeTasks.Store(taskID, taskState)
 	}
 
 	// Submit to async worker (non-blocking)
-	a.ledgerWorker.Submit(event)
+	v.ledgerWorker.Submit(event)
 }
 
 // interceptResponse intercepts and analyzes responses
-func (a *AELProxy) interceptResponse(resp *http.Response) error {
+func (v *VouchProxy) interceptResponse(resp *http.Response) error {
 	// Read body
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -205,7 +205,7 @@ func (a *AELProxy) interceptResponse(resp *http.Response) error {
 			// Update active tasks map with new state
 			// States: working | input_required | completed | failed | cancelled
 			if taskID != "" {
-				a.activeTasks.Store(taskID, taskState)
+				v.activeTasks.Store(taskID, taskState)
 			}
 		}
 	}
@@ -221,7 +221,7 @@ func (a *AELProxy) interceptResponse(resp *http.Response) error {
 	}
 
 	// Submit to async worker (non-blocking)
-	a.ledgerWorker.Submit(event)
+	v.ledgerWorker.Submit(event)
 
 	return nil
 }

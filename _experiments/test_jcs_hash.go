@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/yourname/ael/internal/crypto"
+	"github.com/yourname/vouch/internal/crypto"
 )
 
 func main() {
-	log.Println("AEL - JCS Canonical JSON Hash Verification Test")
+	log.Println("Vouch - JCS Canonical JSON Hash Verification Test")
 	log.Println("========================================")
 	log.Println("Testing RFC 8785 compliance (JSON Canonicalization Scheme)")
 	log.Println()

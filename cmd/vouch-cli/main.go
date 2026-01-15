@@ -11,9 +11,9 @@ import (
 
 	"encoding/json"
 
-	"github.com/yourname/ael/internal/crypto"
-	"github.com/yourname/ael/internal/ledger"
-	"github.com/yourname/ael/internal/proxy"
+	"github.com/yourname/vouch/internal/crypto"
+	"github.com/yourname/vouch/internal/ledger"
+	"github.com/yourname/vouch/internal/proxy"
 )
 
 func main() {
@@ -53,31 +53,31 @@ func main() {
 }
 
 func printUsage() {
-	fmt.Println("AEL CLI - Agent Execution Ledger Command Line Tool")
+	fmt.Println("Vouch CLI - Agent Analytics & Safety Command Line Tool")
 	fmt.Println()
 	fmt.Println("Usage:")
-	fmt.Println("  ael verify              Validate the entire hash chain")
-	fmt.Println("  ael status              Show current run information")
-	fmt.Println("  ael events [--limit N]  List recent events (default: 10)")
-	fmt.Println("  ael approve <event-id>  Approve a stalled action")
-	fmt.Println("  ael reject <event-id>   Reject a stalled action")
-	fmt.Println("  ael stats               Show detailed run and global statistics")
-	fmt.Println("  ael risk                List all high-risk events")
-	fmt.Println("  ael export <file.json>  Export the current run to a JSON file")
-	fmt.Println("  ael topology <task-id>  Show the hierarchy of tools within a task")
-	fmt.Println("  ael rekey               Rotate the Ed25519 signing keys")
+	fmt.Println("  vouch verify              Validate the entire hash chain")
+	fmt.Println("  vouch status              Show current run information")
+	fmt.Println("  vouch events [--limit N]  List recent events (default: 10)")
+	fmt.Println("  vouch approve <event-id>  Approve a stalled action")
+	fmt.Println("  vouch reject <event-id>   Reject a stalled action")
+	fmt.Println("  vouch stats               Show detailed run and global statistics")
+	fmt.Println("  vouch risk                List all high-risk events")
+	fmt.Println("  vouch export <file.json>  Export the current run to a JSON file")
+	fmt.Println("  vouch topology <task-id>  Show the hierarchy of tools within a task")
+	fmt.Println("  vouch rekey               Rotate the Ed25519 signing keys")
 }
 
 func verifyCommand() {
 	// Open database
-	db, err := ledger.NewDB("ael.db")
+	db, err := ledger.NewDB("vouch.db")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 	defer db.Close()
 
 	// Load signer
-	signer, err := crypto.NewSigner(".ael_key")
+	signer, err := crypto.NewSigner(".vouch_key")
 	if err != nil {
 		log.Fatalf("Failed to load signer: %v", err)
 	}
@@ -115,7 +115,7 @@ func verifyCommand() {
 
 func statusCommand() {
 	// Open database
-	db, err := ledger.NewDB("ael.db")
+	db, err := ledger.NewDB("vouch.db")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
@@ -153,7 +153,7 @@ func eventsCommand() {
 	_ = eventsFlags.Parse(os.Args[2:])
 
 	// Open database
-	db, err := ledger.NewDB("ael.db")
+	db, err := ledger.NewDB("vouch.db")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
@@ -189,7 +189,7 @@ func eventsCommand() {
 
 func approveCommand() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: ael approve <event-id>")
+		fmt.Println("Usage: vouch approve <event-id>")
 		os.Exit(1)
 	}
 
@@ -199,7 +199,7 @@ func approveCommand() {
 	url := fmt.Sprintf("http://localhost:9998/api/approve/%s", eventID)
 	resp, err := http.Post(url, "application/json", nil)
 	if err != nil {
-		fmt.Printf("Error: Failed to connect to AEL proxy: %v\n", err)
+		fmt.Printf("Error: Failed to connect to Vouch proxy: %v\n", err)
 		fmt.Println("Make sure the proxy is running on port 9998")
 		os.Exit(1)
 	}
@@ -217,7 +217,7 @@ func approveCommand() {
 
 func rejectCommand() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: ael reject <event-id>")
+		fmt.Println("Usage: vouch reject <event-id>")
 		os.Exit(1)
 	}
 
@@ -227,7 +227,7 @@ func rejectCommand() {
 	url := fmt.Sprintf("http://localhost:9998/api/reject/%s", eventID)
 	resp, err := http.Post(url, "application/json", nil)
 	if err != nil {
-		fmt.Printf("Error: Failed to connect to AEL proxy: %v\n", err)
+		fmt.Printf("Error: Failed to connect to Vouch proxy: %v\n", err)
 		fmt.Println("Make sure the proxy is running on port 9998")
 		os.Exit(1)
 	}
@@ -244,7 +244,7 @@ func rejectCommand() {
 }
 
 func statsCommand() {
-	db, err := ledger.NewDB("ael.db")
+	db, err := ledger.NewDB("vouch.db")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
@@ -287,7 +287,7 @@ func statsCommand() {
 }
 
 func riskCommand() {
-	db, err := ledger.NewDB("ael.db")
+	db, err := ledger.NewDB("vouch.db")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
@@ -315,12 +315,12 @@ func riskCommand() {
 
 func exportCommand() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: ael export <output-file.json>")
+		fmt.Println("Usage: vouch export <output-file.json>")
 		os.Exit(1)
 	}
 	outputFile := os.Args[2]
 
-	db, err := ledger.NewDB("ael.db")
+	db, err := ledger.NewDB("vouch.db")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
@@ -363,12 +363,12 @@ func exportCommand() {
 
 func topologyCommand() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: ael topology <task-id>")
+		fmt.Println("Usage: vouch topology <task-id>")
 		os.Exit(1)
 	}
 	taskID := os.Args[2]
 
-	db, err := ledger.NewDB("ael.db")
+	db, err := ledger.NewDB("vouch.db")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
@@ -420,7 +420,7 @@ func topologyCommand() {
 func rekeyCommand() {
 	resp, err := http.Post("http://localhost:9998/api/rekey", "application/json", nil)
 	if err != nil {
-		log.Fatalf("Failed to contact AEL API: %v", err)
+		log.Fatalf("Failed to contact Vouch API: %v", err)
 	}
 	defer resp.Body.Close()
 

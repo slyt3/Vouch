@@ -18,23 +18,23 @@ import (
 func TestIntegration(t *testing.T) {
 	// 1. Build binaries
 	wd, _ := os.Getwd()
-	aelPath := filepath.Join(wd, "ael")
-	cliPath := filepath.Join(wd, "ael-cli")
+	vouchPath := filepath.Join(wd, "vouch")
+	cliPath := filepath.Join(wd, "vouch-cli")
 
-	cmd := exec.Command("go", "build", "-o", aelPath, "../main.go")
+	cmd := exec.Command("go", "build", "-o", vouchPath, "../main.go")
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("Failed to build ael: %v", err)
+		t.Fatalf("Failed to build vouch: %v", err)
 	}
-	defer os.Remove(aelPath)
+	defer os.Remove(vouchPath)
 
-	cmd = exec.Command("go", "build", "-o", cliPath, "../cmd/ael-cli/main.go")
+	cmd = exec.Command("go", "build", "-o", cliPath, "../cmd/vouch-cli/main.go")
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("Failed to build ael-cli: %v", err)
+		t.Fatalf("Failed to build vouch-cli: %v", err)
 	}
 	defer os.Remove(cliPath)
 
 	// 2. Setup environment
-	tmpDir, _ := os.MkdirTemp("", "ael-integration-*")
+	tmpDir, _ := os.MkdirTemp("", "vouch-integration-*")
 	defer os.RemoveAll(tmpDir)
 
 	// Copy schema and policy
@@ -49,7 +49,7 @@ policies:
     risk_level: critical
     action: stall
 `
-	_ = os.WriteFile(filepath.Join(tmpDir, "ael-policy.yaml"), []byte(policyContent), 0644)
+	_ = os.WriteFile(filepath.Join(tmpDir, "vouch-policy.yaml"), []byte(policyContent), 0644)
 
 	// 3. Start Mock MCP Server
 	mockServer := &http.Server{
@@ -72,16 +72,16 @@ policies:
 	}()
 	defer mockServer.Close()
 
-	// 4. Start AEL Proxy
-	aelCmd := exec.Command(aelPath)
-	aelCmd.Dir = tmpDir
+	// 4. Start Vouch Proxy
+	vouchCmd := exec.Command(vouchPath)
+	vouchCmd.Dir = tmpDir
 	// Create a pipe for stderr (standard log output goes here)
-	stderr, _ := aelCmd.StderrPipe()
-	stdout, _ := aelCmd.StdoutPipe()
-	if err := aelCmd.Start(); err != nil {
-		t.Fatalf("Failed to start ael: %v", err)
+	stderr, _ := vouchCmd.StderrPipe()
+	stdout, _ := vouchCmd.StdoutPipe()
+	if err := vouchCmd.Start(); err != nil {
+		t.Fatalf("Failed to start vouch: %v", err)
 	}
-	defer func() { _ = aelCmd.Process.Kill() }()
+	defer func() { _ = vouchCmd.Process.Kill() }()
 
 	// Wait for readiness
 	ready := make(chan bool)
@@ -98,8 +98,8 @@ policies:
 			}
 		}
 	}
-	go monitor(stdout, "ael-out")
-	go monitor(stderr, "ael-err")
+	go monitor(stdout, "vouch-out")
+	go monitor(stderr, "vouch-err")
 
 	select {
 	case <-ready:

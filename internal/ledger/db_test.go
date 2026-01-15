@@ -9,7 +9,7 @@ import (
 
 func TestDB(t *testing.T) {
 	// Setup temporary database
-	tmpDir, err := os.MkdirTemp("", "ael-test-*")
+	tmpDir, err := os.MkdirTemp("", "vouch-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
@@ -31,7 +31,7 @@ func TestDB(t *testing.T) {
 	defer func() { _ = os.Chdir(oldWd) }()
 
 	// Create database
-	db, err := NewDB("ael.db")
+	db, err := NewDB("vouch.db")
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}

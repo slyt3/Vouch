@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// PolicyConfig represents the ael-policy.yaml structure
+// PolicyConfig represents the vouch-policy.yaml structure
 type PolicyConfig struct {
 	Version  string `yaml:"version"`
 	Defaults struct {
@@ -32,7 +32,7 @@ type PolicyRule struct {
 	Redact         []string               `yaml:"redact,omitempty"` // List of param keys to redact
 }
 
-// LoadPolicy loads the ael-policy.yaml file
+// LoadPolicy loads the vouch-policy.yaml file
 func LoadPolicy(path string) (*PolicyConfig, error) {
 	// Try absolute path first, then relative
 	if !filepath.IsAbs(path) {

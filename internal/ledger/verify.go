@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/yourname/ael/internal/crypto"
-	"github.com/yourname/ael/internal/proxy"
+	"github.com/yourname/vouch/internal/crypto"
+	"github.com/yourname/vouch/internal/proxy"
 )
 
 // VerificationResult contains the results of chain verification
