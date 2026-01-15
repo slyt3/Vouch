@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -64,7 +65,9 @@ policies:
 				"result":  map[string]interface{}{"success": true},
 			}
 			json.NewEncoder(w).SetIndent("", "  ")
-			_ = json.NewEncoder(w).Encode(resp)
+			if err := json.NewEncoder(w).Encode(resp); err != nil {
+				log.Printf("Mock server failed to encode response: %v", err)
+			}
 		}),
 	}
 	go func() {
@@ -90,7 +93,7 @@ policies:
 		for scanner.Scan() {
 			line := scanner.Text()
 			fmt.Printf("[%s] %s\n", name, line)
-			if strings.Contains(line, "Ready to intercept") {
+			if strings.Contains(line, "Admin API:") {
 				select {
 				case ready <- true:
 				default:

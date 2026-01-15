@@ -38,6 +38,3 @@ jobs:
           version: latest
           args: --timeout=5m
           only-new-issues: false
-          # Explicitly set output-format to avoid "github-actions" being appended if possible, 
-          # though the action often overrides this.
-          # To truly avoid the warning, we sometimes need to let the action handle it.

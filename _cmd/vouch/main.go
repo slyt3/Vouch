@@ -27,8 +27,8 @@ type VouchProxy struct {
 }
 
 func main() {
-	log.Println("Vouch (Agent Analytics & Safety) - Phase 1: The Interceptor")
-	log.Println("========================================================")
+	log.Printf("Vouch (Agent Analytics & Safety) - Phase 1: The Interceptor")
+	log.Printf("%s", "========================================================")
 
 	// Initialize policy engine
 	policyEngine, err := policy.NewEngine("vouch-policy.yaml")

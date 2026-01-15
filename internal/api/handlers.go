@@ -37,7 +37,9 @@ func (h *Handlers) HandleApprove(w http.ResponseWriter, r *http.Request) {
 	case approvalChan <- true:
 		log.Printf("Event %s approved via API", eventID)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Approved\n"))
+		if _, err := w.Write([]byte("Approved\n")); err != nil {
+			log.Printf("Failed to write response: %v", err)
+		}
 	default:
 		http.Error(w, "Already processed", http.StatusConflict)
 	}
@@ -61,7 +63,9 @@ func (h *Handlers) HandleReject(w http.ResponseWriter, r *http.Request) {
 	case approvalChan <- false:
 		log.Printf("Event %s rejected via API", eventID)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Rejected\n"))
+		if _, err := w.Write([]byte("Rejected\n")); err != nil {
+			log.Printf("Failed to write response: %v", err)
+		}
 	default:
 		http.Error(w, "Already processed", http.StatusConflict)
 	}
@@ -75,11 +79,15 @@ func (h *Handlers) HandleRekey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Key rotated: %s -> %s", oldPubKey[:16], newPubKey[:16])
-	fmt.Fprintf(w, "Key rotated\nOld: %s\nNew: %s", oldPubKey, newPubKey)
+	if _, err := fmt.Fprintf(w, "Key rotated\nOld: %s\nNew: %s", oldPubKey, newPubKey); err != nil {
+		log.Printf("Failed to write response: %v", err)
+	}
 }
 
 func (h *Handlers) HandleStats(w http.ResponseWriter, r *http.Request) {
 	metrics := pool.GetMetrics()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(metrics)
+	if err := json.NewEncoder(w).Encode(metrics); err != nil {
+		log.Printf("Failed to encode JSON: %v", err)
+	}
 }
