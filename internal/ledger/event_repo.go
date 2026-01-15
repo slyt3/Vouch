@@ -4,31 +4,55 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
+	"github.com/yourname/vouch/internal/assert"
 	"github.com/yourname/vouch/internal/proxy"
 )
 
 // InsertEvent inserts a new event into the ledger
 func (db *DB) InsertEvent(id, runID string, seqIndex int, timestamp, actor, eventType, method, params, response, taskID, taskState, parentID, policyID, riskLevel, prevHash, currentHash, signature string) error {
+	if err := assert.Check(id != "", "event id must not be empty"); err != nil {
+		return err
+	}
+	if err := assert.Check(runID != "", "run id must not be empty"); err != nil {
+		return err
+	}
+	if err := assert.Check(currentHash != "", "current hash must not be empty"); err != nil {
+		return err
+	}
+	if err := assert.Check(signature != "", "signature must not be empty"); err != nil {
+		return err
+	}
 	query := `
 		INSERT INTO events (
 			id, run_id, seq_index, timestamp, actor, event_type, method, params, response,
 			task_id, task_state, parent_id, policy_id, risk_level, prev_hash, current_hash, signature
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	_, err := db.conn.Exec(query,
+	res, err := db.conn.Exec(query,
 		id, runID, seqIndex, timestamp, actor, eventType, method, params, response,
 		taskID, taskState, parentID, policyID, riskLevel, prevHash, currentHash, signature,
 	)
 	if err != nil {
 		return fmt.Errorf("inserting event: %w", err)
 	}
+	rows, err := res.RowsAffected()
+	if err != nil || rows != 1 {
+		return fmt.Errorf("failed to insert event: rows affected = %d", rows)
+	}
 	return nil
 }
 
 // GetLastEvent retrieves the most recent event for a given run
 func (db *DB) GetLastEvent(runID string) (seqIndex int, currentHash string, err error) {
+	if err := assert.Check(runID != "", "runID must not be empty"); err != nil {
+		return 0, "", err
+	}
+	if err := assert.Check(db.conn != nil, "database connection missing"); err != nil {
+		return 0, "", err
+	}
 	query := `SELECT seq_index, current_hash FROM events WHERE run_id = ? ORDER BY seq_index DESC LIMIT 1`
 	err = db.conn.QueryRow(query, runID).Scan(&seqIndex, &currentHash)
 	if err == sql.ErrNoRows {
@@ -43,6 +67,12 @@ func (db *DB) GetLastEvent(runID string) (seqIndex int, currentHash string, err 
 
 // GetAllEvents retrieves all events for a run, ordered by sequence
 func (db *DB) GetAllEvents(runID string) ([]proxy.Event, error) {
+	if err := assert.Check(runID != "", "runID must not be empty"); err != nil {
+		return nil, err
+	}
+	if err := assert.Check(db.conn != nil, "database connection missing"); err != nil {
+		return nil, err
+	}
 	query := `
 		SELECT id, run_id, seq_index, timestamp, actor, event_type, method, 
 		       params, response, task_id, task_state, parent_id, policy_id, risk_level, prev_hash, current_hash, signature
@@ -85,14 +115,18 @@ func (db *DB) GetAllEvents(runID string) ([]proxy.Event, error) {
 		// Parse JSON fields
 		if params != "" && params != "null" {
 			var paramsMap map[string]interface{}
-			if err := json.Unmarshal([]byte(params), &paramsMap); err == nil {
+			if err := json.Unmarshal([]byte(params), &paramsMap); err != nil {
+				log.Printf("Warning: failed to unmarshal params for event %s: %v", e.ID, err)
+			} else {
 				e.Params = paramsMap
 			}
 		}
 
 		if response != "" && response != "null" {
 			var responseMap map[string]interface{}
-			if err := json.Unmarshal([]byte(response), &responseMap); err == nil {
+			if err := json.Unmarshal([]byte(response), &responseMap); err != nil {
+				log.Printf("Warning: failed to unmarshal response for event %s: %v", e.ID, err)
+			} else {
 				e.Response = responseMap
 			}
 		}
@@ -105,6 +139,15 @@ func (db *DB) GetAllEvents(runID string) ([]proxy.Event, error) {
 
 // GetRecentEvents retrieves the N most recent events
 func (db *DB) GetRecentEvents(runID string, limit int) ([]proxy.Event, error) {
+	if err := assert.Check(runID != "", "runID must not be empty"); err != nil {
+		return nil, err
+	}
+	if err := assert.Check(limit > 0, "limit must be positive"); err != nil {
+		return nil, err
+	}
+	if err := assert.Check(db.conn != nil, "database connection missing"); err != nil {
+		return nil, err
+	}
 	query := `
 		SELECT id, run_id, seq_index, timestamp, actor, event_type, method, 
 		       params, response, task_id, task_state, parent_id, policy_id, risk_level, prev_hash, current_hash, signature
@@ -147,6 +190,12 @@ func (db *DB) GetRecentEvents(runID string, limit int) ([]proxy.Event, error) {
 
 // GetEventByID retrieves a specific event by ID
 func (db *DB) GetEventByID(eventID string) (*proxy.Event, error) {
+	if err := assert.Check(eventID != "", "eventID must not be empty"); err != nil {
+		return nil, err
+	}
+	if err := assert.Check(db.conn != nil, "database connection missing"); err != nil {
+		return nil, err
+	}
 	query := `
 		SELECT id, run_id, seq_index, timestamp, actor, event_type, method, 
 		       params, response, task_id, task_state, parent_id, policy_id, risk_level, prev_hash, current_hash, signature
@@ -179,6 +228,9 @@ func (db *DB) GetEventByID(eventID string) (*proxy.Event, error) {
 
 // GetEventsByTaskID retrieves all events for a specific task
 func (db *DB) GetEventsByTaskID(taskID string) ([]proxy.Event, error) {
+	if err := assert.Check(taskID != "", "taskID must not be empty"); err != nil {
+		return nil, err
+	}
 	query := `
 		SELECT id, run_id, seq_index, timestamp, actor, event_type, method, 
 		       params, response, task_id, task_state, parent_id, policy_id, risk_level, prev_hash, current_hash, signature
@@ -217,6 +269,9 @@ func (db *DB) GetEventsByTaskID(taskID string) ([]proxy.Event, error) {
 
 // GetTaskFailureCount returns the number of failed or cancelled states for a task
 func (db *DB) GetTaskFailureCount(taskID string) (int, error) {
+	if err := assert.Check(taskID != "", "taskID must not be empty"); err != nil {
+		return 0, err
+	}
 	var count int
 	err := db.conn.QueryRow(`
 		SELECT COUNT(*) FROM events 
@@ -227,6 +282,9 @@ func (db *DB) GetTaskFailureCount(taskID string) (int, error) {
 
 // GetRiskEvents returns events with high or critical risk
 func (db *DB) GetRiskEvents() ([]proxy.Event, error) {
+	if err := assert.Check(db.conn != nil, "database connection missing"); err != nil {
+		return nil, err
+	}
 	query := `
 		SELECT id, run_id, seq_index, timestamp, actor, event_type, method, params, response,
 		       task_id, task_state, parent_id, policy_id, risk_level, prev_hash, current_hash, signature

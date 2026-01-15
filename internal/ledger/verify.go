@@ -22,6 +22,12 @@ func VerifyChain(db *DB, runID string, signer *crypto.Signer) (*VerificationResu
 	if err := assert.Check(runID != "", "runID must not be empty"); err != nil {
 		return nil, err
 	}
+	if err := assert.Check(db != nil, "database connection missing"); err != nil {
+		return nil, err
+	}
+	if err := assert.Check(signer != nil, "signer is nil"); err != nil {
+		return nil, err
+	}
 	result := &VerificationResult{
 		Valid: true,
 	}
@@ -68,6 +74,9 @@ func VerifyChain(db *DB, runID string, signer *crypto.Signer) (*VerificationResu
 func VerifyEvent(event *proxy.Event, signer *crypto.Signer) error {
 	// Safety Assertion: Check signature before hash verification
 	if err := assert.Check(event.Signature != "", "event signature must not be empty", "id", event.ID); err != nil {
+		return err
+	}
+	if err := assert.Check(event.CurrentHash != "", "event current hash is missing", "id", event.ID); err != nil {
 		return err
 	}
 	// 4. Calculate hash using normalized payload and JCS

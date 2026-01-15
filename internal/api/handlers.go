@@ -1,12 +1,14 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
 	"github.com/yourname/vouch/internal/core"
+	"github.com/yourname/vouch/internal/pool"
 )
 
 type Handlers struct {
@@ -74,4 +76,10 @@ func (h *Handlers) HandleRekey(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Key rotated: %s -> %s", oldPubKey[:16], newPubKey[:16])
 	fmt.Fprintf(w, "Key rotated\nOld: %s\nNew: %s", oldPubKey, newPubKey)
+}
+
+func (h *Handlers) HandleStats(w http.ResponseWriter, r *http.Request) {
+	metrics := pool.GetMetrics()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(metrics)
 }

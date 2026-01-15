@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/yourname/vouch/internal/assert"
 	"github.com/yourname/vouch/internal/crypto"
+	"github.com/yourname/vouch/internal/pool"
 	"github.com/yourname/vouch/internal/proxy"
 )
 
@@ -30,6 +31,12 @@ func NewEventProcessor(db *DB, signer *crypto.Signer, runID string) *EventProces
 
 // ProcessEvent applies the business logic to a single intercepted event
 func (p *EventProcessor) ProcessEvent(event *proxy.Event) error {
+	if err := assert.Check(event != nil, "event must not be nil"); err != nil {
+		return err
+	}
+	if err := assert.Check(p.db != nil, "database must be initialized"); err != nil {
+		return err
+	}
 	if err := p.persistEvent(event); err != nil {
 		return err
 	}
@@ -53,6 +60,9 @@ func (p *EventProcessor) ProcessEvent(event *proxy.Event) error {
 }
 
 func (p *EventProcessor) trackTaskState(event *proxy.Event) {
+	if err := assert.Check(event.TaskID != "", "taskID must not be empty"); err != nil {
+		return
+	}
 	oldState, exists := p.taskStates[event.TaskID]
 	if exists && oldState != event.TaskState {
 		log.Printf("  Task %s: %s -> %s", event.TaskID, oldState, event.TaskState)
@@ -74,9 +84,12 @@ func isTerminalState(state string) bool {
 
 // persistEvent prepares, hashes, signs and stores an event in the database
 func (p *EventProcessor) persistEvent(event *proxy.Event) error {
+	if err := assert.Check(event != nil, "event must not be nil"); err != nil {
+		return err
+	}
 	// 1. Assign sequence index
 	stats, err := p.db.GetRunStats(p.runID)
-	if err != nil {
+	if err := assert.Check(err == nil, "failed to get run stats", "err", err); err != nil {
 		return fmt.Errorf("getting run stats: %w", err)
 	}
 	event.SeqIndex = stats.TotalEvents
@@ -127,22 +140,27 @@ func (p *EventProcessor) persistEvent(event *proxy.Event) error {
 	event.Signature = signature
 
 	// 4. Store
-	return insertEvent(p.db, *event)
+	return insertEvent(p.db, event)
 }
 
 func (p *EventProcessor) createTaskCompletionEvent(taskID string, state string) {
-	event := proxy.Event{
-		ID:        uuid.New().String()[:8],
-		Timestamp: time.Now(),
-		EventType: "task_terminal",
-		Method:    "vouch:task_state",
-		Params: map[string]interface{}{
-			"task_id": taskID,
-			"state":   state,
-		},
-		TaskID:    taskID,
-		TaskState: state,
+	event := pool.GetEvent()
+	event.ID = uuid.New().String()[:8]
+	event.Timestamp = time.Now()
+	event.EventType = "task_terminal"
+	event.Method = "vouch:task_state"
+	if event.Params == nil {
+		event.Params = make(map[string]interface{})
 	}
-	// We don't recurse here to the worker channel, we process it directly
-	_ = p.persistEvent(&event)
+	event.Params["task_id"] = taskID
+	event.Params["state"] = state
+	event.TaskID = taskID
+	event.TaskState = state
+
+	// Direct call to persist
+	_ = p.persistEvent(event)
+	// We don't PutEvent here because this is often called inside Worker loop which will Put it,
+	// BUT wait, this is NOT coming from the channel.
+	// Actually, persistEvent just reads it. So we can PutEvent here.
+	pool.PutEvent(event)
 }

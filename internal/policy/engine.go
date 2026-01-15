@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/yourname/vouch/internal/assert"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,13 +23,13 @@ type Config struct {
 
 // Rule represents a single policy rule
 type Rule struct {
-	ID               string                 `yaml:"id"`
-	MatchMethods     []string               `yaml:"match_methods"`
-	RiskLevel        string                 `yaml:"risk_level"`
-	Action           string                 `yaml:"action"` // "allow" | "stall"
-	ProofOfRefusal   bool                   `yaml:"proof_of_refusal"`
-	LogLevel         string                 `yaml:"log_level,omitempty"`
-	Conditions       map[string]interface{} `yaml:"conditions,omitempty"`
+	ID             string                 `yaml:"id"`
+	MatchMethods   []string               `yaml:"match_methods"`
+	RiskLevel      string                 `yaml:"risk_level"`
+	Action         string                 `yaml:"action"` // "allow" | "stall"
+	ProofOfRefusal bool                   `yaml:"proof_of_refusal"`
+	LogLevel       string                 `yaml:"log_level,omitempty"`
+	Conditions     map[string]interface{} `yaml:"conditions,omitempty"`
 }
 
 // Engine handles policy evaluation and enforcement
@@ -38,6 +39,9 @@ type Engine struct {
 
 // NewEngine creates a new policy engine
 func NewEngine(configPath string) (*Engine, error) {
+	if err := assert.Check(configPath != "", "config path must not be empty"); err != nil {
+		return nil, err
+	}
 	config, err := loadConfig(configPath)
 	if err != nil {
 		return nil, err
@@ -80,6 +84,9 @@ func (e *Engine) GetRuleCount() int {
 
 // ShouldStall checks if a method should be stalled based on policy
 func (e *Engine) ShouldStall(method string, params map[string]interface{}) (bool, *Rule) {
+	if err := assert.Check(method != "", "method name is non-empty"); err != nil {
+		return false, nil
+	}
 	for _, rule := range e.config.Policies {
 		if rule.Action != "stall" {
 			continue
@@ -103,6 +110,12 @@ func (e *Engine) ShouldStall(method string, params map[string]interface{}) (bool
 
 // matchPattern matches a method against a pattern with wildcard support
 func matchPattern(pattern, method string) bool {
+	if err := assert.Check(pattern != "", "pattern is non-empty"); err != nil {
+		return false
+	}
+	if err := assert.Check(method != "", "method is non-empty"); err != nil {
+		return false
+	}
 	if pattern == method {
 		return true
 	}

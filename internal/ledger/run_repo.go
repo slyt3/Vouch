@@ -3,14 +3,32 @@ package ledger
 import (
 	"database/sql"
 	"fmt"
+
+	"github.com/yourname/vouch/internal/assert"
 )
 
 // InsertRun creates a new run record
 func (db *DB) InsertRun(id, agentName, genesisHash, ledgerPubKey string) error {
+	if err := assert.Check(id != "", "run id must not be empty"); err != nil {
+		return err
+	}
+	if err := assert.Check(agentName != "", "agent name must not be empty"); err != nil {
+		return err
+	}
+	if err := assert.Check(genesisHash != "", "genesis hash must not be empty"); err != nil {
+		return err
+	}
+	if err := assert.Check(ledgerPubKey != "", "ledger pub key must not be empty"); err != nil {
+		return err
+	}
 	query := `INSERT INTO runs (id, agent_name, genesis_hash, ledger_pub_key) VALUES (?, ?, ?, ?)`
-	_, err := db.conn.Exec(query, id, agentName, genesisHash, ledgerPubKey)
+	res, err := db.conn.Exec(query, id, agentName, genesisHash, ledgerPubKey)
 	if err != nil {
 		return fmt.Errorf("inserting run: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil || rows != 1 {
+		return fmt.Errorf("failed to insert run: rows affected = %d", rows)
 	}
 	return nil
 }
@@ -27,6 +45,9 @@ func (db *DB) HasRuns() (bool, error) {
 
 // GetRunID retrieves the most recent run ID
 func (db *DB) GetRunID() (string, error) {
+	if err := assert.Check(db.conn != nil, "database connection is nil"); err != nil {
+		return "", err
+	}
 	var runID string
 	err := db.conn.QueryRow("SELECT id FROM runs ORDER BY started_at DESC LIMIT 1").Scan(&runID)
 	if err == sql.ErrNoRows {
@@ -40,6 +61,9 @@ func (db *DB) GetRunID() (string, error) {
 
 // GetRunInfo retrieves run metadata
 func (db *DB) GetRunInfo(runID string) (agentName, genesisHash, pubKey string, err error) {
+	if err := assert.Check(runID != "", "runID must not be empty"); err != nil {
+		return "", "", "", err
+	}
 	query := `SELECT agent_name, genesis_hash, ledger_pub_key FROM runs WHERE id = ?`
 	err = db.conn.QueryRow(query, runID).Scan(&agentName, &genesisHash, &pubKey)
 	if err != nil {

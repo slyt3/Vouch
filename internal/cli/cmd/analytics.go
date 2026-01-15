@@ -7,7 +7,12 @@ import (
 	"log"
 	"os"
 
+	"net/http"
+	"time"
+
+	"github.com/yourname/vouch/internal/assert"
 	"github.com/yourname/vouch/internal/ledger"
+	"github.com/yourname/vouch/internal/pool"
 	"github.com/yourname/vouch/internal/proxy"
 )
 
@@ -19,14 +24,17 @@ func EventsCommand() {
 
 	// Open database
 	db, err := ledger.NewDB("vouch.db")
-	if err != nil {
+	if err := assert.Check(err == nil, "failed to open database", "err", err); err != nil {
 		log.Fatalf("Failed to open database: %v", err)
+	}
+	if err := assert.Check(db != nil, "database handle is nil"); err != nil {
+		log.Fatalf("Database handle is nil")
 	}
 	defer db.Close()
 
 	// Get current run ID
 	runID, err := db.GetRunID()
-	if err != nil {
+	if err := assert.Check(err == nil, "failed to get run ID", "err", err); err != nil {
 		log.Fatalf("Failed to get run ID: %v", err)
 	}
 
@@ -37,7 +45,7 @@ func EventsCommand() {
 
 	// Get recent events
 	events, err := db.GetRecentEvents(runID, *limit)
-	if err != nil {
+	if err := assert.Check(err == nil, "failed to get events", "err", err); err != nil {
 		log.Fatalf("Failed to get events: %v", err)
 	}
 
@@ -66,7 +74,7 @@ func StatsCommand() {
 	}
 
 	stats, err := db.GetRunStats(runID)
-	if err != nil {
+	if err := assert.Check(err == nil, "failed to get stats", "err", err); err != nil {
 		log.Fatalf("Failed to get stats: %v", err)
 	}
 
@@ -93,6 +101,29 @@ func StatsCommand() {
 		fmt.Printf("Total Events:    %d\n", gStats.TotalEvents)
 		fmt.Printf("Critical Alerts: %d\n", gStats.CriticalCount)
 	}
+
+	// Fetch Memory Pool Metrics from API
+	client := http.Client{Timeout: 2 * time.Second}
+	resp, err := client.Get("http://localhost:9998/api/metrics")
+	if err == nil {
+		defer resp.Body.Close()
+		var m pool.Metrics
+		if err := json.NewDecoder(resp.Body).Decode(&m); err == nil {
+			fmt.Println("\nMemory Infrastructure (Zero-Allocation Pools)")
+			fmt.Println("--------------------------------------------")
+			printPoolMetric("Event Pool", m.EventHits, m.EventMisses)
+			printPoolMetric("Buffer Pool", m.BufferHits, m.BufferMisses)
+		}
+	}
+}
+
+func printPoolMetric(name string, hits, misses uint64) {
+	total := hits + misses
+	rate := 0.0
+	if total > 0 {
+		rate = (float64(hits) / float64(total)) * 100
+	}
+	fmt.Printf("%-12s | Hits: %-5d | Misses: %-5d | Efficiency: %.1f%%\n", name, hits, misses, rate)
 }
 
 func RiskCommand() {
@@ -103,7 +134,7 @@ func RiskCommand() {
 	defer db.Close()
 
 	risky, err := db.GetRiskEvents()
-	if err != nil {
+	if err := assert.Check(err == nil, "failed to get risky events", "err", err); err != nil {
 		log.Fatalf("Failed to get risky events: %v", err)
 	}
 

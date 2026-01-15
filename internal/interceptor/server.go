@@ -13,7 +13,17 @@ import (
 	"github.com/yourname/vouch/internal/assert"
 	"github.com/yourname/vouch/internal/core"
 	"github.com/yourname/vouch/internal/mcp"
+	"github.com/yourname/vouch/internal/pool"
 	"github.com/yourname/vouch/internal/proxy"
+)
+
+// PolicyAction defines the outcome of a policy check
+type PolicyAction string
+
+const (
+	ActionAllow  PolicyAction = "allow"
+	ActionStall  PolicyAction = "stall"
+	ActionRedact PolicyAction = "redact"
 )
 
 // Interceptor handles the proxy interception logic
@@ -25,54 +35,66 @@ func NewInterceptor(engine *core.Engine) *Interceptor {
 	return &Interceptor{Core: engine}
 }
 
-// InterceptRequest intercepts and analyzes incoming requests
+// InterceptRequest intercepts and analyzes incoming requests (Orchestrator)
 func (i *Interceptor) InterceptRequest(req *http.Request) {
 	if req.Method != http.MethodPost {
 		return
 	}
 
-	bodyBytes, err := io.ReadAll(req.Body)
-	if err != nil {
+	buf := pool.GetBuffer()
+	defer pool.PutBuffer(buf)
+
+	if _, err := buf.ReadFrom(req.Body); err != nil {
 		log.Printf("Failed to read request body: %v", err)
 		return
 	}
+	bodyBytes := buf.Bytes()
 	req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	// 1. Extract Metadata
-	mcpReq, taskID, taskState, err := i.extractTaskMetadata(bodyBytes)
+	mcpReq, taskID, method, err := i.extractTaskMetadata(bodyBytes)
 	if err != nil {
 		i.SendErrorResponse(req, http.StatusBadRequest, -32000, err.Error())
 		return
 	}
 
-	// 2. Health Check
-	if !i.Core.Worker.IsHealthy() {
-		i.SendErrorResponse(req, http.StatusServiceUnavailable, -32000, "Ledger Storage Failure")
-		return
-	}
-
-	// 3. Policy Evaluation
-	shouldStall, matchedRule, err := i.evaluatePolicy(mcpReq.Method, mcpReq.Params)
+	// 2. Policy Evaluation
+	action, matchedRule, err := i.evaluatePolicy(method, mcpReq.Params)
 	if err != nil {
 		i.SendErrorResponse(req, http.StatusBadRequest, -32000, "Policy violation")
 		return
 	}
 
-	// 4. Handle Stall (Human-in-the-loop)
-	if shouldStall {
-		if err := i.handleStall(taskID, taskState, mcpReq, matchedRule); err != nil {
-			i.SendErrorResponse(req, http.StatusForbidden, -32000, "Stall rejected or failed")
+	// 3. Handle Stall
+	if action == ActionStall {
+		if err := i.handleStall(taskID, method, mcpReq, matchedRule); err != nil {
+			i.SendErrorResponse(req, http.StatusForbidden, -32000, "Stall rejected")
 			return
 		}
 	}
 
-	// 5. Finalize Event & Submit
-	i.submitToolCallEvent(taskID, taskState, mcpReq, matchedRule)
+	// 4. Redaction (if needed)
+	if action == ActionRedact && matchedRule != nil {
+		scrubbedBody, err := i.redactSensitiveData(bodyBytes, matchedRule.Redact)
+		if err != nil {
+			log.Printf("Redaction failed: %v", err)
+			i.SendErrorResponse(req, http.StatusInternalServerError, -32000, "Redaction failed")
+			return
+		}
+		bodyBytes = scrubbedBody
+		req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+	}
+
+	// 5. Submit Event & Forward
+	i.submitToolCallEvent(taskID, mcpReq, matchedRule)
 }
 
 // extractTaskMetadata parses and validates the request
 func (i *Interceptor) extractTaskMetadata(body []byte) (*mcp.MCPRequest, string, string, error) {
 	if err := assert.Check(len(body) > 0, "request body is empty"); err != nil {
+		return nil, "", "", err
+	}
+	if err := assert.Check(len(body) < 1024*1024, "request body too large", "size", len(body)); err != nil {
 		return nil, "", "", err
 	}
 
@@ -84,67 +106,65 @@ func (i *Interceptor) extractTaskMetadata(body []byte) (*mcp.MCPRequest, string,
 	if err := assert.Check(mcpReq.Method != "", "method must not be empty"); err != nil {
 		return nil, "", "", err
 	}
-
-	taskID, _ := mcpReq.Params["task_id"].(string)
-	taskState := "working"
-
-	if taskID != "" {
-		if err := assert.Check(len(taskID) <= 64, "task_id too long", "id", taskID); err != nil {
-			return nil, "", "", err
-		}
+	if err := assert.Check(mcpReq.JSONRPC == "2.0", "invalid JSON-RPC version", "version", mcpReq.JSONRPC); err != nil {
+		return nil, "", "", err
 	}
 
-	return &mcpReq, taskID, taskState, nil
+	taskID, _ := mcpReq.Params["task_id"].(string)
+	return &mcpReq, taskID, mcpReq.Method, nil
 }
 
 // evaluatePolicy determines the action for the request
-func (i *Interceptor) evaluatePolicy(method string, params map[string]interface{}) (bool, *proxy.PolicyRule, error) {
+func (i *Interceptor) evaluatePolicy(method string, params map[string]interface{}) (PolicyAction, *proxy.PolicyRule, error) {
 	if err := assert.Check(i.Core.Policy != nil, "policy configuration missing"); err != nil {
-		return false, nil, err
+		return ActionAllow, nil, err
+	}
+	if err := assert.Check(method != "", "method name is non-empty"); err != nil {
+		return ActionAllow, nil, err
 	}
 
-	// shouldStallMethod logic
 	for _, rule := range i.Core.Policy.Policies {
-		if rule.Action != "stall" {
-			continue
-		}
-
 		for _, pattern := range rule.MatchMethods {
 			if proxy.MatchPattern(pattern, method) {
-				if rule.Conditions != nil {
-					if !proxy.CheckConditions(rule.Conditions, params) {
-						continue
-					}
+				if rule.Conditions != nil && !proxy.CheckConditions(rule.Conditions, params) {
+					continue
 				}
-				return true, &rule, nil
+
+				action := PolicyAction(rule.Action)
+				if action == "" {
+					action = ActionAllow
+				}
+				return action, &rule, nil
 			}
 		}
 	}
 
-	return false, nil, nil
+	return ActionAllow, nil, nil
 }
 
 // handleStall manages the approval workflow
-func (i *Interceptor) handleStall(taskID, taskState string, mcpReq *mcp.MCPRequest, matchedRule *proxy.PolicyRule) error {
+func (i *Interceptor) handleStall(taskID, method string, mcpReq *mcp.MCPRequest, matchedRule *proxy.PolicyRule) error {
 	if err := assert.Check(mcpReq != nil, "mcpReq must not be nil"); err != nil {
+		return err
+	}
+	if err := assert.Check(matchedRule != nil, "matchedRule must not be nil"); err != nil {
 		return err
 	}
 
 	eventID := uuid.New().String()[:8]
-	log.Printf("[STALL] Method: %s | Policy: %s | ID: %s", mcpReq.Method, matchedRule.ID, eventID)
+	log.Printf("[STALL] Method: %s | Policy: %s | ID: %s", method, matchedRule.ID, eventID)
 
-	event := proxy.Event{
-		ID:         eventID,
-		Timestamp:  time.Now(),
-		EventType:  "blocked",
-		Method:     mcpReq.Method,
-		Params:     mcpReq.Params,
-		TaskID:     taskID,
-		TaskState:  taskState,
-		PolicyID:   matchedRule.ID,
-		RiskLevel:  matchedRule.RiskLevel,
-		WasBlocked: true,
-	}
+	event := pool.GetEvent()
+	event.ID = eventID
+	event.Timestamp = time.Now()
+	event.EventType = "blocked"
+	event.Method = method
+	event.Params = mcpReq.Params
+	event.TaskID = taskID
+	event.PolicyID = matchedRule.ID
+	event.RiskLevel = matchedRule.RiskLevel
+	event.WasBlocked = true
+
 	i.Core.Worker.Submit(event)
 
 	approvalChan := make(chan bool, 1)
@@ -152,31 +172,37 @@ func (i *Interceptor) handleStall(taskID, taskState string, mcpReq *mcp.MCPReque
 
 	log.Printf("Waiting for approval (ID: %s)...", eventID)
 
-	if !<-approvalChan {
-		return fmt.Errorf("stall rejected")
+	select {
+	case approved := <-approvalChan:
+		if !approved {
+			return fmt.Errorf("stall rejected")
+		}
+		return nil
+	case <-time.After(10 * time.Minute):
+		return fmt.Errorf("stall timeout")
 	}
-
-	return nil
 }
 
 // submitToolCallEvent prepares and sends the tool_call event to the ledger
-func (i *Interceptor) submitToolCallEvent(taskID, taskState string, mcpReq *mcp.MCPRequest, matchedRule *proxy.PolicyRule) {
-	event := proxy.Event{
-		ID:        uuid.New().String()[:8],
-		Timestamp: time.Now(),
-		EventType: "tool_call",
-		Method:    mcpReq.Method,
-		Params:    mcpReq.Params,
-		TaskID:    taskID,
-		TaskState: taskState,
+func (i *Interceptor) submitToolCallEvent(taskID string, mcpReq *mcp.MCPRequest, matchedRule *proxy.PolicyRule) {
+	if err := assert.Check(mcpReq != nil, "mcpReq must not be nil"); err != nil {
+		return
 	}
+	if err := assert.Check(i.Core.Worker != nil, "worker must be initialized"); err != nil {
+		return
+	}
+
+	event := pool.GetEvent()
+	event.ID = uuid.New().String()[:8]
+	event.Timestamp = time.Now()
+	event.EventType = "tool_call"
+	event.Method = mcpReq.Method
+	event.Params = mcpReq.Params
+	event.TaskID = taskID
 
 	if matchedRule != nil {
 		event.PolicyID = matchedRule.ID
 		event.RiskLevel = matchedRule.RiskLevel
-		if len(matchedRule.Redact) > 0 {
-			event.Params = i.RedactSensitiveData(mcpReq.Params, matchedRule.Redact)
-		}
 	}
 
 	if taskID != "" {
@@ -184,38 +210,45 @@ func (i *Interceptor) submitToolCallEvent(taskID, taskState string, mcpReq *mcp.
 			event.ParentID = parentID.(string)
 		}
 		i.Core.LastEventByTask.Store(taskID, event.ID)
-		i.Core.ActiveTasks.Store(taskID, taskState)
 	}
 
 	i.Core.Worker.Submit(event)
 }
 
-// RedactSensitiveData scrubs PII based on policy
-func (i *Interceptor) RedactSensitiveData(params map[string]interface{}, keys []string) map[string]interface{} {
-	redacted := make(map[string]interface{})
-	for k, v := range params {
-		shouldRedact := false
+// redactSensitiveData scrubs PII based on policy (accepts and returns bytes)
+func (i *Interceptor) redactSensitiveData(body []byte, keys []string) ([]byte, error) {
+	if err := assert.Check(len(body) > 0, "body must not be empty"); err != nil {
+		return nil, err
+	}
+	if err := assert.Check(len(keys) > 0, "redaction keys must be defined"); err != nil {
+		return body, nil
+	}
+
+	var mcpReq mcp.MCPRequest
+	if err := json.Unmarshal(body, &mcpReq); err != nil {
+		return nil, err
+	}
+
+	for k := range mcpReq.Params {
 		for _, key := range keys {
 			if k == key {
-				shouldRedact = true
-				break
+				mcpReq.Params[k] = "[REDACTED]"
 			}
 		}
-		if shouldRedact {
-			redacted[k] = "[REDACTED]"
-		} else {
-			redacted[k] = v
-		}
 	}
-	return redacted
+
+	return json.Marshal(mcpReq)
 }
 
 // InterceptResponse intercepts and analyzes responses
 func (i *Interceptor) InterceptResponse(resp *http.Response) error {
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
+	buf := pool.GetBuffer()
+	defer pool.PutBuffer(buf)
+
+	if _, err := buf.ReadFrom(resp.Body); err != nil {
 		return err
 	}
+	bodyBytes := buf.Bytes()
 	resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	var mcpResp mcp.MCPResponse
@@ -242,14 +275,13 @@ func (i *Interceptor) InterceptResponse(resp *http.Response) error {
 		}
 	}
 
-	event := proxy.Event{
-		ID:        uuid.New().String()[:8],
-		Timestamp: time.Now(),
-		EventType: "tool_response",
-		Response:  mcpResp.Result,
-		TaskID:    taskID,
-		TaskState: taskState,
-	}
+	event := pool.GetEvent()
+	event.ID = uuid.New().String()[:8]
+	event.Timestamp = time.Now()
+	event.EventType = "tool_response"
+	event.Response = mcpResp.Result
+	event.TaskID = taskID
+	event.TaskState = taskState
 
 	i.Core.Worker.Submit(event)
 	return nil
@@ -266,6 +298,10 @@ func (i *Interceptor) SendErrorResponse(req *http.Request, statusCode int, code 
 		},
 	}
 
-	respBytes, _ := json.Marshal(errorResp)
+	respBytes, err := json.Marshal(errorResp)
+	if err != nil {
+		log.Printf("[CRITICAL] Failed to marshal error response: %v", err)
+		return
+	}
 	log.Printf("[SECURITY] Blocking request: %s (JSON: %s)", message, string(respBytes))
 }

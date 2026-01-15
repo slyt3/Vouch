@@ -5,13 +5,15 @@ import (
 	"log"
 	"sync/atomic"
 
+	"github.com/yourname/vouch/internal/assert"
 	"github.com/yourname/vouch/internal/crypto"
+	"github.com/yourname/vouch/internal/pool"
 	"github.com/yourname/vouch/internal/proxy"
 )
 
 // Worker processes events asynchronously without blocking the proxy
 type Worker struct {
-	eventChannel chan proxy.Event
+	eventChannel chan *proxy.Event
 	db           *DB
 	signer       *crypto.Signer
 	runID        string
@@ -33,7 +35,7 @@ func NewWorker(bufferSize int, dbPath, keyPath string) (*Worker, error) {
 	}
 
 	return &Worker{
-		eventChannel: make(chan proxy.Event, bufferSize),
+		eventChannel: make(chan *proxy.Event, bufferSize),
 		db:           db,
 		signer:       signer,
 	}, nil
@@ -44,6 +46,9 @@ func (w *Worker) GetDB() *DB {
 }
 
 func (w *Worker) IsHealthy() bool {
+	if err := assert.Check(w != nil, "worker handle is nil"); err != nil {
+		return false
+	}
 	return !w.isUnhealthy.Load()
 }
 
@@ -83,7 +88,10 @@ func (w *Worker) Start() error {
 }
 
 // Submit sends an event to the worker for processing (non-blocking)
-func (w *Worker) Submit(event proxy.Event) {
+func (w *Worker) Submit(event *proxy.Event) {
+	if err := assert.Check(event != nil, "event must not be nil"); err != nil {
+		return
+	}
 	capacity := cap(w.eventChannel)
 	current := len(w.eventChannel)
 	if capacity > 0 && float64(current)/float64(capacity) >= 0.8 {
@@ -102,10 +110,10 @@ func (w *Worker) Close() error {
 // processEvents is the main worker loop
 func (w *Worker) processEvents() {
 	for event := range w.eventChannel {
-		if err := w.processor.ProcessEvent(&event); err != nil {
+		if err := w.processor.ProcessEvent(event); err != nil {
 			log.Printf("[CRITICAL] Event Processing Failure: %v", err)
 			w.isUnhealthy.Store(true)
-			continue
 		}
+		pool.PutEvent(event)
 	}
 }

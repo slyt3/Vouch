@@ -1,5 +1,7 @@
 package ledger
 
+import "github.com/yourname/vouch/internal/assert"
+
 // Stats related structs
 type RunStats struct {
 	RunID         string         `json:"run_id"`
@@ -17,6 +19,9 @@ type GlobalStats struct {
 
 // GetRunStats returns statistics for a specific run
 func (db *DB) GetRunStats(runID string) (*RunStats, error) {
+	if err := assert.Check(runID != "", "runID must not be empty"); err != nil {
+		return nil, err
+	}
 	stats := &RunStats{
 		RunID:         runID,
 		RiskBreakdown: make(map[string]int),

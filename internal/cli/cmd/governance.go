@@ -25,7 +25,11 @@ func ApproveCommand() {
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Error: Failed to read response body: %v\n", err)
+		os.Exit(1)
+	}
 
 	if resp.StatusCode == http.StatusOK {
 		fmt.Printf("✓ Event %s approved successfully\n", eventID)
@@ -53,7 +57,11 @@ func RejectCommand() {
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Error: Failed to read response body: %v\n", err)
+		os.Exit(1)
+	}
 
 	if resp.StatusCode == http.StatusOK {
 		fmt.Printf("✓ Event %s rejected successfully\n", eventID)

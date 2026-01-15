@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/yourname/vouch/internal/crypto"
+	"github.com/yourname/vouch/internal/pool"
 	"github.com/yourname/vouch/internal/proxy"
 )
 
@@ -16,23 +17,19 @@ func CreateGenesisBlock(db *DB, signer *crypto.Signer, agentName string) (string
 	runID := uuid.New().String()
 
 	// Create genesis event
-	genesisEvent := proxy.Event{
-		ID:        uuid.New().String(),
-		RunID:     runID,
-		SeqIndex:  0,
-		Timestamp: time.Now(),
-		Actor:     "system",
-		EventType: "genesis",
-		Method:    "vouch:init",
-		Params: map[string]interface{}{
-			"public_key": signer.GetPublicKey(),
-			"agent_name": agentName,
-			"version":    "1.0.0",
-		},
-		Response:   map[string]interface{}{},
-		PrevHash:   "0000000000000000000000000000000000000000000000000000000000000000", // 64 zeros
-		WasBlocked: false,
-	}
+	genesisEvent := pool.GetEvent()
+	genesisEvent.ID = uuid.New().String()
+	genesisEvent.RunID = runID
+	genesisEvent.SeqIndex = 0
+	genesisEvent.Timestamp = time.Now()
+	genesisEvent.Actor = "system"
+	genesisEvent.EventType = "genesis"
+	genesisEvent.Method = "vouch:init"
+	genesisEvent.Params["public_key"] = signer.GetPublicKey()
+	genesisEvent.Params["agent_name"] = agentName
+	genesisEvent.Params["version"] = "1.0.0"
+	genesisEvent.PrevHash = "0000000000000000000000000000000000000000000000000000000000000000" // 64 zeros
+	genesisEvent.WasBlocked = false
 
 	// Calculate genesis hash
 	payload := map[string]interface{}{
@@ -79,9 +76,15 @@ func CreateGenesisBlock(db *DB, signer *crypto.Signer, agentName string) (string
 }
 
 // insertEvent is a helper to insert an event into the database
-func insertEvent(db *DB, event proxy.Event) error {
-	paramsBytes, _ := json.Marshal(event.Params)
-	responseBytes, _ := json.Marshal(event.Response)
+func insertEvent(db *DB, event *proxy.Event) error {
+	paramsBytes, err := json.Marshal(event.Params)
+	if err != nil {
+		return fmt.Errorf("marshaling params: %w", err)
+	}
+	responseBytes, err := json.Marshal(event.Response)
+	if err != nil {
+		return fmt.Errorf("marshaling response: %w", err)
+	}
 	paramsJSON := string(paramsBytes)
 	responseJSON := string(responseBytes)
 

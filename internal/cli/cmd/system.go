@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/yourname/vouch/internal/ledger"
 )
@@ -49,11 +50,10 @@ func RekeyCommand() {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		log.Fatalf("Rekey failed: %s", string(body))
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Error: Failed to read response body: %v\n", err)
+		os.Exit(1)
 	}
-
-	body, _ := io.ReadAll(resp.Body)
 	fmt.Println(string(body))
 }

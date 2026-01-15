@@ -57,6 +57,7 @@ func main() {
 		mux.HandleFunc("/api/approve/", apiHandlers.HandleApprove)
 		mux.HandleFunc("/api/reject/", apiHandlers.HandleReject)
 		mux.HandleFunc("/api/rekey", apiHandlers.HandleRekey)
+		mux.HandleFunc("/api/metrics", apiHandlers.HandleStats)
 		log.Println("Admin API: :9998")
 		http.ListenAndServe(":9998", mux)
 	}()
