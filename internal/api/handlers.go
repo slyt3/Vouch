@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/slyt3/vouch/internal/core"
-	"github.com/slyt3/vouch/internal/pool"
+	"github.com/slyt3/Vouch/internal/core"
+	"github.com/slyt3/Vouch/internal/pool"
 )
 
 type Handlers struct {

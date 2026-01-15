@@ -5,10 +5,10 @@ import (
 	"log"
 	"sync/atomic"
 
-	"github.com/slyt3/vouch/internal/assert"
-	"github.com/slyt3/vouch/internal/crypto"
-	"github.com/slyt3/vouch/internal/pool"
-	"github.com/slyt3/vouch/internal/proxy"
+	"github.com/slyt3/Vouch/internal/assert"
+	"github.com/slyt3/Vouch/internal/crypto"
+	"github.com/slyt3/Vouch/internal/pool"
+	"github.com/slyt3/Vouch/internal/proxy"
 )
 
 // Worker processes events asynchronously without blocking the proxy

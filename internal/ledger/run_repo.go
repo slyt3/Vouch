@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/slyt3/vouch/internal/assert"
+	"github.com/slyt3/Vouch/internal/assert"
 )
 
 // InsertRun creates a new run record

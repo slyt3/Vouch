@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/slyt3/vouch/internal/crypto"
+	"github.com/slyt3/Vouch/internal/crypto"
 )
 
 func main() {

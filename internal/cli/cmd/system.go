@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/slyt3/vouch/internal/ledger"
+	"github.com/slyt3/Vouch/internal/ledger"
 )
 
 func StatusCommand() {

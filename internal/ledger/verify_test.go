@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/slyt3/vouch/internal/crypto"
-	"github.com/slyt3/vouch/internal/proxy"
+	"github.com/slyt3/Vouch/internal/crypto"
+	"github.com/slyt3/Vouch/internal/proxy"
 )
 
 func TestVerifyChain(t *testing.T) {

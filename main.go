@@ -6,11 +6,11 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	"github.com/slyt3/vouch/internal/api"
-	"github.com/slyt3/vouch/internal/core"
-	"github.com/slyt3/vouch/internal/interceptor"
-	"github.com/slyt3/vouch/internal/ledger"
-	"github.com/slyt3/vouch/internal/proxy"
+	"github.com/slyt3/Vouch/internal/api"
+	"github.com/slyt3/Vouch/internal/core"
+	"github.com/slyt3/Vouch/internal/interceptor"
+	"github.com/slyt3/Vouch/internal/ledger"
+	"github.com/slyt3/Vouch/internal/proxy"
 )
 
 func main() {

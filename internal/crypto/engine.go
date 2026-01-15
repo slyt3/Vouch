@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/ucarion/jcs"
-	"github.com/slyt3/vouch/internal/assert"
+	"github.com/slyt3/Vouch/internal/assert"
 )
 
 // CalculateEventHash ensures deterministic hashing across any model/platform

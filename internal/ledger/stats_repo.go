@@ -1,6 +1,6 @@
 package ledger
 
-import "github.com/slyt3/vouch/internal/assert"
+import "github.com/slyt3/Vouch/internal/assert"
 
 // Stats related structs
 type RunStats struct {

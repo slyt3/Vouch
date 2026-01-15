@@ -5,8 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/slyt3/vouch/internal/assert"
-	"github.com/slyt3/vouch/internal/proxy"
+	"github.com/slyt3/Vouch/internal/assert"
+	"github.com/slyt3/Vouch/internal/proxy"
 )
 
 // Metrics tracks pool performance
