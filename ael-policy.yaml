@@ -1,0 +1,28 @@
+version: "2026.1"
+
+# Global defaults for all agents
+defaults:
+  retention_days: 90
+  signing_enabled: true
+  log_level: "metadata_only"  # metadata_only, full_payload
+
+# Rules for specific MCP tool boundaries
+policies:
+  - id: "critical-infra"
+    match_methods: ["aws:*", "gcp:*", "kubernetes:*"]
+    risk_level: "high"
+    action: "stall"            # Pause proxy, wait for `ael approve`
+    proof_of_refusal: true     # Always log if model is denied
+
+  - id: "financial-ops"
+    match_methods: ["stripe:*", "plaid:transfer_money"]
+    risk_level: "critical"
+    action: "stall"
+    conditions:
+      amount_gt: 1000          # Logic your Go proxy will parse from JSON params
+
+  - id: "read-only-knowledge"
+    match_methods: ["google_search:*", "slack:search"]
+    risk_level: "low"
+    action: "allow"            # Record silently, do not interrupt
+    log_level: "full_payload"

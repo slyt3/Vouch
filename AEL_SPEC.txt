@@ -1,0 +1,97 @@
+# ==========================================================
+# PROJECT: AEL (Agent Execution Ledger)
+# VERSION: 1.0.0 (2026 Compliance Standard)
+# STATUS: INITIALIZING
+# ==========================================================
+
+[1. MISSION]
+To provide an independent, tamper-proof "black box" for AI agents. 
+AEL must record every tool call and model response in a cryptographic 
+hash-chain to ensure legal and operational accountability.
+
+[2. CORE ARCHITECTURE]
+AEL operates as a high-performance transparent proxy.
+
+    [ Agent Host ]
+          |
+    (JSON-RPC / MCP)
+          |
+    [ AEL Proxy (Go) ] <--- [ Policy Engine ]
+          |                     |
+    [ Async Worker ]      [ Human-in-the-Loop CLI ]
+          |
+    [ SQLite Ledger (WAL Mode) ]
+          |
+    [ Ed25519 Signer ]
+
+[3. SYSTEM COMPONENTS]
+- PROXY: Intercepts MCP (Model Context Protocol) traffic.
+- LEDGER: Append-only SQLite database.
+- CHAIN: SHA-256 Hash Chain (Event N points to Event N-1).
+- GUARD: Stalls 'Critical' actions based on `ael-policy.yaml`.
+- VERIFIER: CLI tool to re-calculate hashes and check signatures.
+
+[4. DATA SCHEMA (SQLite)]
+TABLE: runs (id, agent_name, start_time, genesis_hash, genesis_event_id)
+TABLE: events (
+    id TEXT PRIMARY KEY, -- UUIDv7 (time-ordered)
+    run_id TEXT,
+    seq_index INTEGER,
+    timestamp DATETIME,
+    actor TEXT,          -- "agent" or "user"
+    event_type TEXT,     -- "tool_call", "tool_response", "task_started", "task_completed", "blocked"
+    method TEXT,         -- e.g., "tools/call"
+    params JSON,         -- input to tool
+    response JSON,       -- output from tool (or block reason)
+    task_id TEXT,        -- for async MCP tasks (SEP-1686)
+    task_state TEXT,     -- working, input_required, completed, failed, cancelled
+    prev_hash TEXT,      -- hash of (seq_index - 1)
+    current_hash TEXT,   -- SHA256(prev_hash + payload)
+    signature TEXT       -- Ed25519(current_hash)
+)
+
+[5. IMPLEMENTATION ROADMAP]
+
+PHASE 1: THE INTERCEPTOR (Current)
+[ ] Goal: Build Go proxy that forwards traffic and logs to console.
+[ ] Task 1.1: Implement transparent HTTP/SSE proxy.
+[ ] Task 1.2: Parse JSON-RPC "method" and "params".
+[ ] Task 1.3: Track async tasks (MCP SEP-1686) with in-memory map.
+[ ] Task 1.4: Measure latency (Target: <1ms overhead).
+
+PHASE 2: THE IMMUTABLE VAULT
+[ ] Goal: Store tool calls in a cryptographic chain.
+[ ] Task 2.1: Initialize SQLite with WAL mode.
+[ ] Task 2.2: Create Genesis Event (Block 0) with public key + timestamp.
+[ ] Task 2.3: Implement Hash-Chaining (SHA-256 logic with canonical JSON).
+[ ] Task 2.4: Implement Ed25519 signing per event.
+
+PHASE 3: THE POLICY GUARD
+[ ] Goal: Add human-approval for dangerous actions.
+[ ] Task 3.1: Parse `ael-policy.yaml`.
+[ ] Task 3.2: Implement "Stall" logic for protected methods.
+[ ] Task 3.3: Log "Blocked Action" events (Article 12 compliance).
+[ ] Task 3.4: Build CLI command `ael approve <id>`.
+
+PHASE 4: FORENSICS & REPORTING
+[ ] Goal: Verify and export agent behavior reports.
+[ ] Task 4.1: Build `ael verify` (Full chain validation).
+[ ] Task 4.2: Build `ael diff` (Compare two run paths).
+[ ] Task 4.3: Export signed PDF "Flight Reports".
+
+[6. AI INSTRUCTIONS FOR VIBE CODING]
+- Use Go standard library for the proxy (net/http/httputil).
+- Use `sqlc` or raw SQL for performance; avoid heavy ORMs.
+- Ensure all database writes are handled by an async buffered channel.
+- Never let the Agent wait for the Logger to finish writing to disk.
+- Follow MCP (Model Context Protocol) specifications for JSON-RPC structures.
+- Use UUIDv7 for event IDs (time-ordered, no extra indexes needed).
+- Track async MCP tasks (SEP-1686) in memory until completion.
+- Log blocked actions as events for Article 12 "Proof of Refusal".
+- Use JCS (JSON Canonicalization Scheme) for deterministic hashing.
+- Genesis Event: `ael init` must create Block 0 with ledger public key.
+- SEP-1686 States: Track working|input_required|completed|failed|cancelled.
+
+# ==========================================================
+# END OF SPEC
+# ==========================================================
