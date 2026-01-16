@@ -6,7 +6,7 @@ Vouch is a **forensic-grade flight recorder** for autonomous AI agents. It passi
 
 ---
 
-## 🚀 Quick Start (60 Seconds)
+##  Quick Start
 
 ### 1. Build
 ```bash
@@ -28,7 +28,7 @@ go build -o vouch-cli cmd/vouch-cli/main.go
 
 ---
 
-## 🛡️ Why Vouch?
+## Why Vouch?
 
 *   **Immutable**: SQLite ledger with SHA-256 chaining. If a single byte is altered, verification fails.
 *   **Cryptographic Proof**: Every event is signed with an internal Ed25519 key—proving the record came from Vouch.
@@ -38,7 +38,7 @@ go build -o vouch-cli cmd/vouch-cli/main.go
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 Detailed guides for every stakeholder:
 
