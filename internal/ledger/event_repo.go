@@ -12,7 +12,7 @@ import (
 )
 
 // InsertEvent inserts a new event into the ledger
-func (db *DB) InsertEvent(id, runID string, seqIndex int, timestamp, actor, eventType, method, params, response, taskID, taskState, parentID, policyID, riskLevel, prevHash, currentHash, signature string) error {
+func (db *DB) InsertEvent(id, runID string, seqIndex uint64, timestamp, actor, eventType, method, params, response, taskID, taskState, parentID, policyID, riskLevel, prevHash, currentHash, signature string) error {
 	if err := assert.Check(id != "", "event id must not be empty"); err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (db *DB) InsertEvent(id, runID string, seqIndex int, timestamp, actor, even
 }
 
 // GetLastEvent retrieves the most recent event for a given run
-func (db *DB) GetLastEvent(runID string) (seqIndex int, currentHash string, err error) {
+func (db *DB) GetLastEvent(runID string) (seqIndex uint64, currentHash string, err error) {
 	if err := assert.Check(runID != "", "runID must not be empty"); err != nil {
 		return 0, "", err
 	}
@@ -57,7 +57,7 @@ func (db *DB) GetLastEvent(runID string) (seqIndex int, currentHash string, err 
 	err = db.conn.QueryRow(query, runID).Scan(&seqIndex, &currentHash)
 	if err == sql.ErrNoRows {
 		// No events yet, return defaults
-		return -1, "", nil
+		return 0, "", nil
 	}
 	if err != nil {
 		return 0, "", fmt.Errorf("querying last event: %w", err)

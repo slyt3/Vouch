@@ -95,15 +95,26 @@ func (p *EventProcessor) persistEvent(event *proxy.Event) error {
 	event.SeqIndex = stats.TotalEvents
 	event.RunID = p.runID
 
-	// 2. Get previous hash
+	// 2. Get previous hash and validate sequence
+	var lastIndex uint64
+	var lastHash string
+
+	lastIndex, lastHash, err = p.db.GetLastEvent(p.runID)
+	if err != nil {
+		return fmt.Errorf("getting last event: %w", err)
+	}
+
 	if event.SeqIndex == 0 {
+		if err := assert.Check(lastHash == "", "expected empty last hash for seq 0"); err != nil {
+			return err
+		}
 		event.PrevHash = "0000000000000000000000000000000000000000000000000000000000000000"
 	} else {
-		_, lastHash, err := p.db.GetLastEvent(p.runID)
-		if err != nil {
-			return fmt.Errorf("getting last event: %w", err)
-		}
 		if err := assert.Check(lastHash != "", "prev_hash must be non-empty: seq=%d", event.SeqIndex); err != nil {
+			return err
+		}
+		// STRICT SEQUENCING ASSERTION
+		if err := assert.Check(event.SeqIndex == lastIndex+1, "sequence gap detected: prev=%d, curr=%d", lastIndex, event.SeqIndex); err != nil {
 			return err
 		}
 		event.PrevHash = lastHash

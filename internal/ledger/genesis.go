@@ -31,6 +31,21 @@ func CreateGenesisBlock(db *DB, signer *crypto.Signer, agentName string) (string
 	genesisEvent.PrevHash = "0000000000000000000000000000000000000000000000000000000000000000" // 64 zeros
 	genesisEvent.WasBlocked = false
 
+	// Fetch Bitcoin Anchor (Phase 3)
+	anchor, err := FetchBitcoinAnchor()
+	if err != nil {
+		// NASA Rule: Be robust. If anchor fails, log it but don't crash,
+		// but for Strict Integrity, we might want to fail-closed?
+		// For MVP, we log warning and proceed without anchor, or use a "Null" anchor.
+		// Let's assume we proceed but mark it.
+		fmt.Printf("[WARNING] Failed to fetch Bitcoin anchor: %v\n", err)
+	} else {
+		genesisEvent.Params["anchor_source"] = anchor.Source
+		genesisEvent.Params["anchor_height"] = anchor.BlockHeight
+		genesisEvent.Params["anchor_hash"] = anchor.BlockHash
+		genesisEvent.Params["anchor_time"] = anchor.Timestamp
+	}
+
 	// Calculate genesis hash
 	payload := map[string]interface{}{
 		"id":         genesisEvent.ID,

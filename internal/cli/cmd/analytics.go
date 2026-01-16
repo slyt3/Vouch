@@ -153,54 +153,6 @@ func RiskCommand() {
 	}
 }
 
-func ExportCommand() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: vouch export <output-file.json>")
-		os.Exit(1)
-	}
-	outputFile := os.Args[2]
-
-	db, err := ledger.NewDB("vouch.db")
-	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
-	}
-	defer db.Close()
-
-	runID, _ := db.GetRunID()
-	if runID == "" {
-		fmt.Println("No runs found")
-		return
-	}
-
-	events, err := db.GetAllEvents(runID)
-	if err != nil {
-		log.Fatalf("Failed to get events: %v", err)
-	}
-
-	agent, genesisHash, pubKey, _ := db.GetRunInfo(runID)
-
-	exportData := map[string]interface{}{
-		"run_id":       runID,
-		"agent":        agent,
-		"genesis_hash": genesisHash,
-		"public_key":   pubKey,
-		"events":       events,
-		"exported_at":  os.Args[0], // Using placeholder for exported time to avoid time dependency if not needed
-	}
-
-	data, err := json.MarshalIndent(exportData, "", "  ")
-	if err != nil {
-		log.Fatalf("Failed to marshal export data: %v", err)
-	}
-
-	err = os.WriteFile(outputFile, data, 0644)
-	if err != nil {
-		log.Fatalf("Failed to write to file: %v", err)
-	}
-
-	fmt.Printf("✓ Exported %d events to %s\n", len(events), outputFile)
-}
-
 func TopologyCommand() {
 	if len(os.Args) < 3 {
 		fmt.Println("Usage: vouch topology <task-id>")

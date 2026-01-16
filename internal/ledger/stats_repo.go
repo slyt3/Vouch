@@ -5,16 +5,16 @@ import "github.com/slyt3/Vouch/internal/assert"
 // Stats related structs
 type RunStats struct {
 	RunID         string         `json:"run_id"`
-	TotalEvents   int            `json:"total_events"`
-	CallCount     int            `json:"call_count"`
-	BlockedCount  int            `json:"blocked_count"`
+	TotalEvents   uint64         `json:"total_events"`
+	CallCount     uint64         `json:"call_count"`
+	BlockedCount  uint64         `json:"blocked_count"`
 	RiskBreakdown map[string]int `json:"risk_breakdown"`
 }
 
 type GlobalStats struct {
-	TotalRuns     int `json:"total_runs"`
-	TotalEvents   int `json:"total_events"`
-	CriticalCount int `json:"critical_count"`
+	TotalRuns     int    `json:"total_runs"`
+	TotalEvents   uint64 `json:"total_events"`
+	CriticalCount int    `json:"critical_count"`
 }
 
 // GetRunStats returns statistics for a specific run

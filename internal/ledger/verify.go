@@ -14,7 +14,7 @@ type VerificationResult struct {
 	Valid        bool
 	TotalEvents  int
 	ErrorMessage string
-	FailedAtSeq  int
+	FailedAtSeq  uint64
 }
 
 // VerifyChain validates the entire event chain for a given run

@@ -8,7 +8,7 @@ import (
 type Event struct {
 	ID          string                 `json:"id"`
 	RunID       string                 `json:"run_id"`
-	SeqIndex    int                    `json:"seq_index"`
+	SeqIndex    uint64                 `json:"seq_index"`
 	Timestamp   time.Time              `json:"timestamp"`
 	Actor       string                 `json:"actor"` // "agent", "user", or "system"
 	EventType   string                 `json:"event_type"`
