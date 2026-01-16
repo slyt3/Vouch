@@ -2,7 +2,6 @@ package ledger
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -41,19 +40,9 @@ func (p *EventProcessor) ProcessEvent(event *models.Event) error {
 		return err
 	}
 
-	// Log to console for visibility
-	timestamp := event.Timestamp.Format("15:04:05.000")
-
-	if event.WasBlocked {
-		log.Printf("[%s] BLOCKED | %s | Seq: %d | Hash: %s",
-			timestamp, event.Method, event.SeqIndex, event.CurrentHash[:16])
-	} else if event.EventType == "tool_call" || event.EventType == "tool_response" {
-		log.Printf("[%s] %-8s | %s | Seq: %d | Hash: %s",
-			timestamp, event.EventType, event.Method, event.SeqIndex, event.CurrentHash[:16])
-
-		if event.TaskID != "" {
-			p.trackTaskState(event)
-		}
+	// Track task state if applicable
+	if (event.EventType == "tool_call" || event.EventType == "tool_response") && event.TaskID != "" {
+		p.trackTaskState(event)
 	}
 
 	return nil
@@ -65,12 +54,9 @@ func (p *EventProcessor) trackTaskState(event *models.Event) {
 	}
 	oldState, exists := p.taskStates[event.TaskID]
 	if exists && oldState != event.TaskState {
-		log.Printf("  Task %s: %s -> %s", event.TaskID, oldState, event.TaskState)
-
 		if isTerminalState(event.TaskState) {
 			p.createTaskCompletionEvent(event.TaskID, event.TaskState)
 			delete(p.taskStates, event.TaskID)
-			log.Printf(" [CLEANUP] Task %s state purged from memory", event.TaskID)
 		}
 	}
 	if !isTerminalState(event.TaskState) {

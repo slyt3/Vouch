@@ -25,7 +25,6 @@ func (h *Handlers) HandleRekey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Key rotated: %s -> %s", oldPubKey[:16], newPubKey[:16])
 	if _, err := fmt.Fprintf(w, "Key rotated\nOld: %s\nNew: %s", oldPubKey, newPubKey); err != nil {
 		log.Printf("Failed to write response: %v", err)
 	}

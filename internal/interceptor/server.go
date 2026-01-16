@@ -257,21 +257,8 @@ func (i *Interceptor) InterceptResponse(resp *http.Response) error {
 	return nil
 }
 
-// SendErrorResponse sends a JSON-RPC error response
+// SendErrorResponse was used to block requests (Phase 1).
+// In Phase 2 (Lobotomy), we are a passive recorder and do not block traffic.
 func (i *Interceptor) SendErrorResponse(req *http.Request, statusCode int, code int, message string) {
-	errorResp := mcp.MCPResponse{
-		JSONRPC: "2.0",
-		ID:      nil,
-		Error: map[string]interface{}{
-			"code":    code,
-			"message": message,
-		},
-	}
-
-	respBytes, err := json.Marshal(errorResp)
-	if err != nil {
-		log.Printf("[CRITICAL] Failed to marshal error response: %v", err)
-		return
-	}
-	log.Printf("[SECURITY] Blocking request: %s (JSON: %s)", message, string(respBytes))
+	// Passive: We do not block. We just log the failure to record if needed.
 }

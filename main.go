@@ -22,8 +22,6 @@ func main() {
 	listenPort := flag.Int("port", 9999, "port to listen on")
 	flag.Parse()
 
-	log.Println("Vouch: The AI Agent Flight Recorder - Forensic Intelligence Engine Starting")
-
 	// 1. Load Observer Rules
 	obsEngine, err := observer.NewObserverEngine(*configPath)
 	if err != nil {

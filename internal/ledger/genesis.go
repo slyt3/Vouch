@@ -33,11 +33,7 @@ func CreateGenesisBlock(db EventRepository, signer *crypto.Signer, agentName str
 	// Fetch Bitcoin Anchor (Phase 3)
 	anchor, err := audit.FetchBitcoinAnchor()
 	if err != nil {
-		// NASA Rule: Be robust. If anchor fails, log it but don't crash,
-		// but for Strict Integrity, we might want to fail-closed?
-		// For MVP, we log warning and proceed without anchor, or use a "Null" anchor.
-		// Let's assume we proceed but mark it.
-		fmt.Printf("[WARNING] Failed to fetch Bitcoin anchor: %v\n", err)
+		// Passive: proceed without anchor if fetch fails
 	} else {
 		genesisEvent.Params["anchor_source"] = anchor.Source
 		genesisEvent.Params["anchor_height"] = anchor.BlockHeight

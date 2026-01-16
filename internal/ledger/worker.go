@@ -96,7 +96,6 @@ func (w *Worker) Start() error {
 	w.processor = NewEventProcessor(w.db, w.signer, w.runID)
 
 	go w.processEvents()
-	log.Println("Async worker started with decoupled EventProcessor")
 
 	return nil
 }
