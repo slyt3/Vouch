@@ -12,7 +12,7 @@ Before analyzing agent actions, you must prove the audit trail hasn't been tampe
 **Verification Checks:**
 1.  **Merkle Linkage**: Ensures no events were deleted or inserted in the past.
 2.  **Ed25519 Authenticity**: Ensures all records were signed by the authorized Vouch instance.
-3.  **Bitcoin Anchoring**: Cross-references the ledger's terminal hash against the public blockchain to prove a specific state existed at a specific time.
+3.  **Bitcoin Anchoring (Live)**: Cross-references both the genesis and periodic terminal hashes against the public Bitcoin blockchain via the Blockstream API.
 
 ## 2. Reconstructing Incidents
 When a specific failure occurs, use the Task ID provided by the agent or extracted from high-risk logs.

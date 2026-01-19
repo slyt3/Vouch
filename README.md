@@ -1,6 +1,6 @@
-# Vouch
+# Vouch: The AI Agent Flight Recorder
 
-> **"If it isn't in the ledger, it didn't happen."**
+> **"If it isnt in the ledger, it didnt happen."**
 
 hit the star if you like the repo ⭐️
 
@@ -8,7 +8,7 @@ Vouch is a **forensic-grade flight recorder** for autonomous AI agents. It passi
 
 ---
 
-##  Quick Start
+## Quick Start
 
 ### 1. Build
 ```bash
@@ -40,7 +40,7 @@ go build -o vouch-cli cmd/vouch-cli/main.go
 
 ---
 
-## Documentation
+## 📚 Documentation
 
 Detailed guides for every stakeholder:
 

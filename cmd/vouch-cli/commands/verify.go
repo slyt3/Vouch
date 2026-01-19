@@ -54,4 +54,16 @@ func VerifyCommand() {
 		}
 		os.Exit(1)
 	}
+
+	// Verify Bitcoin Anchors (Live)
+	fmt.Println("Verifying external Bitcoin anchors...")
+	anchorResult, err := audit.VerifyAnchors(db, runID)
+	if err != nil {
+		fmt.Printf("! Anchor verification failed: %v\n", err)
+	} else if anchorResult.Valid {
+		fmt.Printf("✓ Bitcoin anchors verified against Blockstream API (%d anchors checked)\n", anchorResult.AnchorsChecked)
+	} else {
+		fmt.Printf("✗ Bitcoin anchor mismatch: %s\n", anchorResult.ErrorMessage)
+		os.Exit(1)
+	}
 }

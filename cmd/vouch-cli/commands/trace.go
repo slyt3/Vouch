@@ -72,17 +72,19 @@ func TraceCommand() {
 	roots, childrenMap := buildTree(events)
 
 	// Visualize
-	for _, root := range roots {
-		printTraceNode(root, childrenMap, "", true)
+	for i, root := range roots {
+		printTraceNode(root, childrenMap, "", i == len(roots)-1, events[0].Timestamp)
 	}
+
+	// Footer Summary
+	duration := events[len(events)-1].Timestamp.Sub(events[0].Timestamp)
+	fmt.Println(strings.Repeat("-", 60))
+	fmt.Printf("Summary: %d events | Total Duration: %v\n", len(events), duration.Truncate(time.Millisecond))
 }
 
 func buildTree(events []models.Event) ([]models.Event, map[string][]models.Event) {
 	childrenMap := make(map[string][]models.Event)
 	var roots []models.Event
-
-	// Index by ID for quick lookup if needed, but here we just need parent links
-	// Assuming events are ordered by sequence (time)
 
 	for _, e := range events {
 		if e.ParentID == "" {
@@ -94,7 +96,7 @@ func buildTree(events []models.Event) ([]models.Event, map[string][]models.Event
 	return roots, childrenMap
 }
 
-func printTraceNode(e models.Event, childrenMap map[string][]models.Event, prefix string, isLast bool) {
+func printTraceNode(e models.Event, childrenMap map[string][]models.Event, prefix string, isLast bool, startTime time.Time) {
 	// Marker symbols
 	marker := "├── "
 	if isLast {
@@ -113,9 +115,10 @@ func printTraceNode(e models.Event, childrenMap map[string][]models.Event, prefi
 		statusSym = "‼" // Critical
 	}
 
-	// Format Timestamp delta (not implemented here for brevity, simple print)
+	// Calculate delta from start
+	delta := e.Timestamp.Sub(startTime)
 
-	fmt.Printf("%s%s%s %s [%s]\n", prefix, marker, statusSym, e.Method, e.ID[:6])
+	fmt.Printf("%s%s%s %-15s [%s] (+%v)\n", prefix, marker, statusSym, e.Method, e.ID[:6], delta.Truncate(time.Millisecond))
 
 	// New Prefix for children
 	newPrefix := prefix
@@ -127,9 +130,8 @@ func printTraceNode(e models.Event, childrenMap map[string][]models.Event, prefi
 
 	children := childrenMap[e.ID]
 	for i, child := range children {
-		printTraceNode(child, childrenMap, newPrefix, i == len(children)-1)
+		printTraceNode(child, childrenMap, newPrefix, i == len(children)-1, startTime)
 	}
-
 }
 func generateHTMLReport(taskID string, events []models.Event, outputPath string) error {
 	f, err := os.Create(outputPath)

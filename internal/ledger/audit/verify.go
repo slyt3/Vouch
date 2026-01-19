@@ -2,6 +2,7 @@ package audit
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/slyt3/Vouch/internal/assert"
@@ -121,4 +122,78 @@ func VerifyEvent(event *models.Event, signer *crypto.Signer) error {
 	}
 
 	return nil
+}
+
+// AnchorVerificationResult contains details about anchor validation
+type AnchorVerificationResult struct {
+	Valid          bool
+	AnchorsChecked int
+	ErrorMessage   string
+}
+
+// VerifyAnchors validates all anchor events in the ledger against the Bitcoin blockchain
+func VerifyAnchors(db EventReader, runID string) (*AnchorVerificationResult, error) {
+	events, err := db.GetAllEvents(runID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get events for anchor verification: %w", err)
+	}
+
+	result := &AnchorVerificationResult{Valid: true}
+
+	for _, event := range events {
+		if event.EventType != "genesis" && event.EventType != "anchor" {
+			continue
+		}
+
+		anchorHash, okHash := event.Params["anchor_hash"].(string)
+		anchorHeight, okHeight := event.Params["anchor_height"].(float64) // JSON numbers are float64
+
+		if !okHash || !okHeight {
+			continue
+		}
+
+		result.AnchorsChecked++
+
+		// Verify against live API
+		liveAnchor, err := FetchBitcoinAnchorAtHeight(uint64(anchorHeight))
+		if err != nil {
+			result.Valid = false
+			result.ErrorMessage = fmt.Sprintf("failed to verify anchor at height %d: %v", uint64(anchorHeight), err)
+			return result, nil
+		}
+
+		if liveAnchor.BlockHash != anchorHash {
+			result.Valid = false
+			result.ErrorMessage = fmt.Sprintf("anchor mismatch at height %d: ledger=%s, live=%s", uint64(anchorHeight), anchorHash, liveAnchor.BlockHash)
+			return result, nil
+		}
+	}
+
+	return result, nil
+}
+
+// FetchBitcoinAnchorAtHeight retrieves the block hash for a specific height
+func FetchBitcoinAnchorAtHeight(height uint64) (*Anchor, error) {
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(fmt.Sprintf("https://blockstream.info/api/block-height/%d", height))
+	if err != nil {
+		return nil, fmt.Errorf("fetching block hash: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("blockstream api error: %d", resp.StatusCode)
+	}
+
+	var hash string
+	if _, err := fmt.Fscan(resp.Body, &hash); err != nil {
+		return nil, err
+	}
+
+	return &Anchor{
+		Source:      "bitcoin-mainnet",
+		BlockHeight: height,
+		BlockHash:   hash,
+		Timestamp:   time.Now(),
+	}, nil
 }
