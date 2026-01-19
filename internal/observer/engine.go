@@ -2,9 +2,12 @@ package observer
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/slyt3/Vouch/internal/assert"
 	"gopkg.in/yaml.v3"
@@ -33,7 +36,9 @@ type Rule struct {
 
 // ObserverEngine handles policy evaluation and enforcement
 type ObserverEngine struct {
-	config *Config
+	mu         sync.RWMutex
+	config     *Config
+	configPath string
 }
 
 // NewObserverEngine creates a new observer engine
@@ -41,23 +46,25 @@ func NewObserverEngine(configPath string) (*ObserverEngine, error) {
 	if err := assert.Check(configPath != "", "config path must not be empty"); err != nil {
 		return nil, err
 	}
-	config, err := loadConfig(configPath)
+
+	// Resolve path once
+	absPath, err := filepath.Abs(configPath)
+	if err != nil {
+		absPath = configPath
+	}
+
+	config, err := loadConfig(absPath)
 	if err != nil {
 		return nil, err
 	}
-	return &ObserverEngine{config: config}, nil
+	return &ObserverEngine{
+		config:     config,
+		configPath: absPath,
+	}, nil
 }
 
 // loadConfig loads the vouch-policy.yaml file
 func loadConfig(path string) (*Config, error) {
-	// Try absolute path first, then relative
-	if !filepath.IsAbs(path) {
-		wd, err := os.Getwd()
-		if err == nil {
-			path = filepath.Join(wd, path)
-		}
-	}
-
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading policy file: %w", err)
@@ -71,18 +78,65 @@ func loadConfig(path string) (*Config, error) {
 	return &config, nil
 }
 
+// Reload reloads the configuration from disk
+func (e *ObserverEngine) Reload() error {
+	newConfig, err := loadConfig(e.configPath)
+	if err != nil {
+		return err
+	}
+
+	e.mu.Lock()
+	e.config = newConfig
+	e.mu.Unlock()
+
+	log.Printf("[INFO] Policy reloaded from %s", e.configPath)
+	return nil
+}
+
+// Watch starts a background goroutine to watch for policy file changes
+func (e *ObserverEngine) Watch() {
+	go func() {
+		var lastMod time.Time
+		if stat, err := os.Stat(e.configPath); err == nil {
+			lastMod = stat.ModTime()
+		}
+
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			stat, err := os.Stat(e.configPath)
+			if err != nil {
+				continue
+			}
+
+			if stat.ModTime().After(lastMod) {
+				if err := e.Reload(); err == nil {
+					lastMod = stat.ModTime()
+				}
+			}
+		}
+	}()
+}
+
 // GetVersion returns the policy version
 func (e *ObserverEngine) GetVersion() string {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	return e.config.Version
 }
 
 // GetRuleCount returns the number of policy rules
 func (e *ObserverEngine) GetRuleCount() int {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	return len(e.config.Policies)
 }
 
 // GetPolicies returns the full list of rules (for interceptor)
 func (e *ObserverEngine) GetPolicies() []Rule {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	return e.config.Policies
 }
 

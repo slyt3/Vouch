@@ -27,6 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load observer rules: %v", err)
 	}
+	obsEngine.Watch()
 
 	// 2. Initialize Ledger Store & Worker
 	db, err := store.NewDB("vouch.db")
