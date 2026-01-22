@@ -8,6 +8,20 @@ Status legend:
 
 ---
 
+## v0.1.0 milestone (proposed)
+
+Focus: reliability, observability, and evidence integrity for early adopters.
+
+- Graceful shutdown (item 5)
+- Metrics expansion (item 6)
+- Structured logging with request/task correlation (item 7)
+- Health and readiness probes (item 8)
+- Policy test harness (item 20)
+- Evidence bag signing (item 11)
+- CI quality gates (item 25)
+
+---
+
 ## Foundation and MVP hardening
 
 1) Release‑ready build and run

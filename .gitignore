@@ -23,6 +23,9 @@ VOUCH_SPEC.txt
 *.swo
 *~
 
+# NASA rules
+.github/instructions/
+
 # OS
 .DS_Store
 Thumbs.db
