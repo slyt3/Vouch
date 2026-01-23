@@ -40,6 +40,8 @@ type ObserverEngine struct {
 	mu         sync.RWMutex
 	config     *Config
 	configPath string
+	stopChan   chan struct{}
+	stopOnce   sync.Once
 }
 
 // NewObserverEngine creates a new observer engine
@@ -61,6 +63,7 @@ func NewObserverEngine(configPath string) (*ObserverEngine, error) {
 	return &ObserverEngine{
 		config:     config,
 		configPath: absPath,
+		stopChan:   make(chan struct{}),
 	}, nil
 }
 
@@ -96,6 +99,12 @@ func (e *ObserverEngine) Reload() error {
 
 // Watch starts a background goroutine to watch for policy file changes
 func (e *ObserverEngine) Watch() {
+	if err := assert.NotNil(e, "engine"); err != nil {
+		return
+	}
+	if err := assert.NotNil(e.stopChan, "stop channel"); err != nil {
+		return
+	}
 	go func() {
 		var lastMod time.Time
 		if stat, err := os.Stat(e.configPath); err == nil {
@@ -107,22 +116,40 @@ func (e *ObserverEngine) Watch() {
 
 		const maxWatchTicks = 1 << 30
 		for i := 0; i < maxWatchTicks; i++ {
-			<-ticker.C
-			stat, err := os.Stat(e.configPath)
-			if err != nil {
-				continue
-			}
-
-			if stat.ModTime().After(lastMod) {
-				if err := e.Reload(); err == nil {
-					lastMod = stat.ModTime()
+			select {
+			case <-ticker.C:
+				stat, err := os.Stat(e.configPath)
+				if err != nil {
+					continue
 				}
+
+				if stat.ModTime().After(lastMod) {
+					if err := e.Reload(); err == nil {
+						lastMod = stat.ModTime()
+					}
+				}
+			case <-e.stopChan:
+				return
 			}
 		}
 		if err := assert.Check(false, "watch loop exceeded max ticks"); err != nil {
 			return
 		}
 	}()
+}
+
+// Stop requests the watcher to stop.
+func (e *ObserverEngine) Stop() error {
+	if err := assert.NotNil(e, "engine"); err != nil {
+		return err
+	}
+	if err := assert.NotNil(e.stopChan, "stop channel"); err != nil {
+		return err
+	}
+	e.stopOnce.Do(func() {
+		close(e.stopChan)
+	})
+	return nil
 }
 
 // GetVersion returns the policy version

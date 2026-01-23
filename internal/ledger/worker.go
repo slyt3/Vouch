@@ -3,6 +3,7 @@ package ledger
 import (
 	"fmt"
 	"log"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -27,12 +28,16 @@ type Worker struct {
 	isUnhealthy     atomic.Bool   // Health sentinel
 	processedEvents atomic.Uint64 // Metrics
 	droppedEvents   atomic.Uint64 // Metrics
+	closing         atomic.Bool   // Shutdown sentinel
+	wg              sync.WaitGroup
+	shutdownOnce    sync.Once
 }
 
 const (
 	maxAnchorTicks   = 1 << 30
 	maxSignalBatches = 1 << 30
 	maxDrainEvents   = 1 << 20
+	maxShutdownTicks = 1 << 12
 )
 
 // NewWorker creates a new async ledger worker with a buffered channel.
@@ -85,6 +90,12 @@ func (w *Worker) GetSigner() *crypto.Signer {
 
 // Start initializes the worker, loads existing runs or creates a genesis block, and starts event processing.
 func (w *Worker) Start() error {
+	if err := assert.NotNil(w, "worker"); err != nil {
+		return err
+	}
+	if err := assert.NotNil(w.db, "database"); err != nil {
+		return err
+	}
 	hasRuns, err := w.db.HasRuns()
 	if err != nil {
 		return fmt.Errorf("checking for existing runs: %w", err)
@@ -107,9 +118,19 @@ func (w *Worker) Start() error {
 	}
 
 	w.processor = NewEventProcessor(w.db, w.signer, w.runID)
+	w.closing.Store(false)
 
-	go w.processEvents()
-	go w.anchorLoop()
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		w.processEvents()
+	}()
+
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		w.anchorLoop()
+	}()
 
 	return nil
 }
@@ -118,6 +139,14 @@ func (w *Worker) Start() error {
 func (w *Worker) Submit(event *models.Event) {
 	// NASA Rule: Check preconditions
 	if err := assert.NotNil(event, "event"); err != nil {
+		return
+	}
+	if err := assert.NotNil(w.ringBuffer, "ring buffer"); err != nil {
+		return
+	}
+	if w.closing.Load() {
+		w.droppedEvents.Add(1)
+		log.Printf("[WARN] Worker shutting down, dropping event %s", event.ID)
 		return
 	}
 
@@ -149,9 +178,107 @@ func (w *Worker) Stats() (processed, dropped uint64) {
 
 // Close shuts down the worker and releases resources
 func (w *Worker) Close() error {
-	close(w.quitChan)
-	close(w.signalChan)
+	if err := assert.NotNil(w, "worker"); err != nil {
+		return err
+	}
+	if err := assert.NotNil(w.db, "database"); err != nil {
+		return err
+	}
+	return w.Shutdown(5 * time.Second)
+}
+
+// Shutdown drains pending events, stops background loops, and closes the database.
+func (w *Worker) Shutdown(timeout time.Duration) error {
+	if err := assert.NotNil(w, "worker"); err != nil {
+		return err
+	}
+	if err := assert.Check(timeout > 0, "timeout must be positive"); err != nil {
+		return err
+	}
+
+	w.closing.Store(true)
+	w.shutdownOnce.Do(func() {
+		close(w.quitChan)
+		close(w.signalChan)
+	})
+
+	if err := w.waitForStop(timeout); err != nil {
+		log.Printf("[WARN] worker shutdown wait: %v", err)
+	}
+	if err := w.drainBuffer(); err != nil {
+		return err
+	}
+
 	return w.db.Close()
+}
+
+func (w *Worker) waitForStop(timeout time.Duration) error {
+	if err := assert.NotNil(w, "worker"); err != nil {
+		return err
+	}
+	if err := assert.Check(timeout > 0, "timeout must be positive"); err != nil {
+		return err
+	}
+
+	done := make(chan struct{})
+	go func() {
+		w.wg.Wait()
+		close(done)
+	}()
+
+	step := timeout / maxShutdownTicks
+	if step == 0 {
+		step = time.Millisecond
+	}
+	if err := assert.Check(step > 0, "shutdown step must be positive"); err != nil {
+		return err
+	}
+
+	ticker := time.NewTicker(step)
+	defer ticker.Stop()
+
+	for i := 0; i < maxShutdownTicks; i++ {
+		select {
+		case <-done:
+			return nil
+		case <-ticker.C:
+		}
+	}
+	return fmt.Errorf("worker shutdown wait exceeded timeout")
+}
+
+func (w *Worker) drainBuffer() error {
+	if err := assert.NotNil(w, "worker"); err != nil {
+		return err
+	}
+	if err := assert.NotNil(w.processor, "processor"); err != nil {
+		return err
+	}
+	if err := assert.NotNil(w.ringBuffer, "ring buffer"); err != nil {
+		return err
+	}
+
+	if err := assert.Check(w.ringBuffer.Cap() <= maxDrainEvents, "ring buffer cap exceeds max: %d", w.ringBuffer.Cap()); err != nil {
+		w.isUnhealthy.Store(true)
+		return err
+	}
+
+	for j := 0; j < maxDrainEvents; j++ {
+		if w.ringBuffer.IsEmpty() {
+			break
+		}
+		event, err := w.ringBuffer.Pop()
+		if err != nil {
+			break
+		}
+		if err := w.processor.ProcessEvent(event); err != nil {
+			log.Printf("[CRITICAL] Event Processing Failure: %v", err)
+			w.isUnhealthy.Store(true)
+		}
+		w.processedEvents.Add(1)
+		pool.PutEvent(event)
+	}
+	return nil
 }
 
 func (w *Worker) anchorLoop() {
