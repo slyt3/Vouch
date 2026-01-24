@@ -117,6 +117,8 @@ func newAdminServer(apiHandlers *api.Handlers) *http.Server {
 	mux.HandleFunc("/api/rekey", apiHandlers.HandleRekey)
 	mux.HandleFunc("/api/metrics", apiHandlers.HandleStats)
 	mux.HandleFunc("/metrics", apiHandlers.HandlePrometheus)
+	mux.HandleFunc("/healthz", apiHandlers.HandleHealth)
+	mux.HandleFunc("/readyz", apiHandlers.HandleReady)
 
 	return &http.Server{Addr: adminAddr, Handler: mux}
 }

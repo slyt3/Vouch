@@ -52,6 +52,47 @@ func (h *Handlers) HandleStats(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handlers) HandleHealth(w http.ResponseWriter, r *http.Request) {
+	if err := assert.NotNil(h, "handlers"); err != nil {
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("ok"))
+}
+
+func (h *Handlers) HandleReady(w http.ResponseWriter, r *http.Request) {
+	if err := assert.NotNil(h, "handlers"); err != nil {
+		http.Error(w, "service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	if err := assert.NotNil(h.Core, "core"); err != nil {
+		http.Error(w, "service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	if err := assert.NotNil(h.Core.Worker, "worker"); err != nil {
+		http.Error(w, "service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	if !h.Core.Worker.IsHealthy() {
+		http.Error(w, "worker unhealthy", http.StatusServiceUnavailable)
+		return
+	}
+
+	if h.Core.Worker.GetSigner() == nil {
+		http.Error(w, "signer unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	if h.Core.Worker.GetDB() == nil {
+		http.Error(w, "database unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("ready"))
+}
+
 func (h *Handlers) HandlePrometheus(w http.ResponseWriter, r *http.Request) {
 	if err := assert.NotNil(h, "handlers"); err != nil {
 		return
