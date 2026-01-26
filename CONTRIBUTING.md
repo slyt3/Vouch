@@ -33,13 +33,6 @@ go test -v ./...
 3.  Push to the branch: `git push origin feature/amazing-feature`.
 4.  Open a Pull Request.
 
-## Versioning Policy
-
-- Use `v0.0.x` tags for interim releases until all v0.1.0 roadmap items are complete.
-- Do not create or keep a `v0.1.0` tag before the v0.1.0 roadmap is done.
-- After each feature update, review roadmap status before tagging.
-- For pre-release builds, use `v0.0.x-alpha.N` or `v0.0.x-rc.N`.
-
 ## Safety First
 Vouch is **safety-critical software**. All PRs must maintain or improve the safety score. Features that introduce memory leaks, race conditions, or unchecked errors will be rejected.
 
