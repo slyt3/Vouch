@@ -33,7 +33,11 @@ func TestCalculateEventHash(t *testing.T) {
 
 func TestSigner(t *testing.T) {
 	keyPath := ".test_key"
-	defer os.Remove(keyPath)
+	defer func() {
+		if err := os.Remove(keyPath); err != nil && !os.IsNotExist(err) {
+			t.Logf("Failed to remove test key: %v", err)
+		}
+	}()
 
 	signer, err := NewSigner(keyPath)
 	if err != nil {

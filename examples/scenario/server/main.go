@@ -44,7 +44,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		switch req.Method {
 		case "compute:list_instances":
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"jsonrpc": "2.0",
 				"result":  instances,
 				"id":      req.ID,

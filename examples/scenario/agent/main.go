@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -64,7 +65,11 @@ func call(client *http.Client, method string, params map[string]interface{}) {
 		fmt.Printf("❌ Connection error: %v (Is Vouch running?)\n", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to close response body: %v\n", err)
+		}
+	}()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	fmt.Printf("   Response [%d]: %s\n", resp.StatusCode, string(respBody))

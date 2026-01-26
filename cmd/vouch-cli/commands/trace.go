@@ -202,10 +202,14 @@ func generateHTMLReport(taskID string, events []models.Event, outputPath string)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to close HTML file: %v\n", err)
+		}
+	}()
 
 	title := fmt.Sprintf("Vouch Forensic Report - Task %s", taskID)
-	fmt.Fprintf(f, `<!DOCTYPE html>
+	if _, err := fmt.Fprintf(f, `<!DOCTYPE html>
 <html>
 <head>
     <title>%s</title>
@@ -233,7 +237,9 @@ func generateHTMLReport(taskID string, events []models.Event, outputPath string)
         <p><strong>Run ID:</strong> %s</p>
         <p><strong>Generated:</strong> %s</p>
     </div>
-`, title, taskID, events[0].RunID, time.Now().Format(time.RFC1123))
+`, title, taskID, events[0].RunID, time.Now().Format(time.RFC1123)); err != nil {
+		return err
+	}
 
 	const maxReportEvents = 100000
 	if err := assert.Check(len(events) <= maxReportEvents, "report events exceed max: %d", len(events)); err != nil {
@@ -255,17 +261,21 @@ func generateHTMLReport(taskID string, events []models.Event, outputPath string)
 			riskClass = "event-response"
 		}
 
-		fmt.Fprintf(f, `
+		if _, err := fmt.Fprintf(f, `
     <div class="event %s">
         <div class="meta">
             <span class="id">[%s]</span> %s &bull; <strong>%s</strong> &bull; %s
             %s
         </div>
         <div><strong>Method:</strong> %s</div>
-`, riskClass, e.ID[:8], e.Timestamp.Format("15:04:05.000"), e.Actor, e.EventType, formatRiskBadge(e.RiskLevel), e.Method)
+`, riskClass, e.ID[:8], e.Timestamp.Format("15:04:05.000"), e.Actor, e.EventType, formatRiskBadge(e.RiskLevel), e.Method); err != nil {
+			return err
+		}
 
 		if len(e.Params) > 0 {
-			fmt.Fprintf(f, `        <div class="payload"><strong>Params:</strong> %v</div>`, formatPayload(e.Params))
+			if _, err := fmt.Fprintf(f, `        <div class="payload"><strong>Params:</strong> %v</div>`, formatPayload(e.Params)); err != nil {
+				return err
+			}
 		}
 		if len(e.Response) > 0 {
 			fmt.Fprintf(f, `        <div class="payload"><strong>Response:</strong> %v</div>`, formatPayload(e.Response))

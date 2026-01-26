@@ -202,13 +202,13 @@ func TestCap_Immutable(t *testing.T) {
 
 	// Push and pop, capacity should remain constant
 	for i := 0; i < capacity*2; i++ {
-		buf.Push(i)
+		_ = buf.Push(i)
 		if buf.Cap() != capacity {
 			t.Errorf("capacity changed to %d after push", buf.Cap())
 		}
 
 		if !buf.IsEmpty() {
-			buf.Pop()
+			_, _ = buf.Pop()
 			if buf.Cap() != capacity {
 				t.Errorf("capacity changed to %d after pop", buf.Cap())
 			}
@@ -246,8 +246,8 @@ func BenchmarkPush_SingleThread(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if err := buf.Push(i); err != nil {
-			buf.Pop() // Make space if full
-			buf.Push(i)
+			_, _ = buf.Pop() // Make space if full
+			_ = buf.Push(i)
 		}
 	}
 }
@@ -257,13 +257,13 @@ func BenchmarkPop_SingleThread(b *testing.B) {
 	buf, _ := New[int](10000)
 	// Pre-fill buffer
 	for i := 0; i < 10000; i++ {
-		buf.Push(i)
+		_ = buf.Push(i)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if _, err := buf.Pop(); err != nil {
-			buf.Push(i) // Refill if empty
-			buf.Pop()
+			_ = buf.Push(i) // Refill if empty
+			_, _ = buf.Pop()
 		}
 	}
 }
@@ -273,8 +273,8 @@ func BenchmarkPushPop_SingleThread(b *testing.B) {
 	buf, _ := New[int](1024)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		buf.Push(i)
-		buf.Pop()
+		_ = buf.Push(i)
+		_, _ = buf.Pop()
 	}
 }
 
@@ -283,13 +283,13 @@ func BenchmarkBuffer_ZeroAllocation(b *testing.B) {
 	buf, _ := New[int](1024)
 	// Pre-fill to avoid allocation during test
 	for i := 0; i < 512; i++ {
-		buf.Push(i)
+		_ = buf.Push(i)
 	}
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		buf.Push(i)
-		buf.Pop()
+		_ = buf.Push(i)
+		_, _ = buf.Pop()
 	}
 }

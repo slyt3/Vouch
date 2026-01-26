@@ -85,10 +85,18 @@ func ExportEvidenceBag(zipPath, targetRunID string) error {
 	if err != nil {
 		return fmt.Errorf("creating zip file: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to close zip file: %v\n", err)
+		}
+	}()
 
 	w := zip.NewWriter(f)
-	defer w.Close()
+	defer func() {
+		if err := w.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to close zip writer: %v\n", err)
+		}
+	}()
 
 	// 5. Add Manifest
 	manFile, err := w.Create("manifest.json")
@@ -108,7 +116,11 @@ func ExportEvidenceBag(zipPath, targetRunID string) error {
 		// Try to read generic way if locked
 		return fmt.Errorf("opening vouch.db: %w", err)
 	}
-	defer dbFile.Close()
+	defer func() {
+		if err := dbFile.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to close DB file: %v\n", err)
+		}
+	}()
 
 	destFile, err := w.Create("vouch.db")
 	if err != nil {
