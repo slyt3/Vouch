@@ -188,4 +188,3 @@ External auditors can verify signatures using only the public key (private key n
 - Ed25519 Specification: RFC 8032
 - Key Management Best Practices: NIST SP 800-57
 - Logryph Architecture: ARCHITECTURE.md
-- Verification Process: INVESTIGATOR_GUIDE.md
