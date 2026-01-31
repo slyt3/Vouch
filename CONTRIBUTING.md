@@ -88,7 +88,7 @@ If automated release fails, trigger manually:
 
 Each release includes:
 - `logryph_<version>_<os>_<arch>.tar.gz` - Main proxy binary
-- `logryph-cli_<version>_<os>_<arch>.tar.gz` - CLI tool binary
+- `logyctl_<version>_<os>_<arch>.tar.gz` - CLI tool binary
 - `checksums.txt` - SHA256 checksums for verification
 - `logryph-sbom.spdx.json` - Software Bill of Materials (supply chain security)
 

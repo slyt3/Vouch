@@ -8,7 +8,7 @@ Logryph (Associated Evidence Ledger) is a high-integrity forensic logger for AI 
 
 ```mermaid
 graph TD
-    CLI[cmd/logryph-cli] --> CMD[commands]
+    CLI[cmd/logyctl] --> CMD[commands]
     CMD --> AUDIT[internal/ledger/audit]
     CMD --> STORE[internal/ledger/store]
     CMD --> POOL[internal/pool]
@@ -61,7 +61,7 @@ graph TD
 *   **Mechanism**: Fixed-size Ring Buffer (`internal/ring`).
 *   **Behavior**: Non-blocking submission. If buffer is full, events are dropped (fail-open) with metrics increment, preserving agent availability.
 
-### 4. Forensic CLI (`cmd/logryph-cli`)
+### 4. Forensic CLI (`cmd/logyctl`)
 *   **Role**: Post-incident analysis and verification.
 *   **Commands**:
     *   `verify`: Validates the cryptographic integrity of the entire chain.
@@ -86,7 +86,7 @@ graph TD
 
 ## Directory Layout
 
-*   `cmd/logryph-cli`: CLI entry point and definitions.
+*   `cmd/logyctl`: CLI entry point and definitions.
 *   `internal/core`: State management and orchestration.
 *   `internal/models`: Shared data structures (`Event`).
 *   `internal/observer`: Rule loading and evaluation.

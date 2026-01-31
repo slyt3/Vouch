@@ -18,14 +18,14 @@ Logryph creates that record so you can review, verify, and export it.
 - Stores data in `logryph.db`
 - Chains records with hashes
 - Signs records with a local key
-- Lets you query and export with `logryph-cli`
+- Lets you query and export with `logyctl`
 
 ## Quick start
 
 Build:
 ```bash
 go build -o logryph main.go
-go build -o logryph-cli cmd/logryph-cli/main.go
+go build -o logyctl cmd/logyctl/main.go
 ```
 
 Run:
@@ -40,9 +40,9 @@ http://localhost:9999
 
 Use the CLI:
 ```bash
-./logryph-cli trace
-./logryph-cli verify
-./logryph-cli export <file.zip>
+./logyctl trace
+./logyctl verify
+./logyctl export <file.zip>
 ```
 
 Ports: proxy `:9999`, admin/metrics `:9998`
@@ -65,19 +65,19 @@ Server flags:
 
 CLI commands:
 
-- `logryph-cli status` — show current run info
-- `logryph-cli events --limit 10` — list recent events
-- `logryph-cli stats` — show run and global stats
-- `logryph-cli risk` — list high‑risk events
-- `logryph-cli trace <task-id>` — show a task timeline
-- `logryph-cli verify` — verify the hash chain
-- `logryph-cli verify --skip-live` — verify without live Bitcoin checks
-- `logryph-cli export <file.zip>` — export an evidence bag
-- `logryph-cli replay <event-id>` — replay a stored tool call
-- `logryph-cli rekey` — rotate signing keys
-- `logryph-cli backup-key` — save a key backup
-- `logryph-cli restore-key <backup-file>` — restore from a backup
-- `logryph-cli list-backups` — list available backups
+- `logyctl status` — show current run info
+- `logyctl events --limit 10` — list recent events
+- `logyctl stats` — show run and global stats
+- `logyctl risk` — list high‑risk events
+- `logyctl trace <task-id>` — show a task timeline
+- `logyctl verify` — verify the hash chain
+- `logyctl verify --skip-live` — verify without live Bitcoin checks
+- `logyctl export <file.zip>` — export an evidence bag
+- `logyctl replay <event-id>` — replay a stored tool call
+- `logyctl rekey` — rotate signing keys
+- `logyctl backup-key` — save a key backup
+- `logyctl restore-key <backup-file>` — restore from a backup
+- `logyctl list-backups` — list available backups
 
 ## Environment
 
@@ -90,6 +90,7 @@ CLI commands:
 - Database: `logryph.db`
 - Key: `.logryph_key`
 - Schema: `internal/ledger/store/schema.sql`
+
 ## Docs
 
 - [ARCHITECTURE.md](ARCHITECTURE.md)

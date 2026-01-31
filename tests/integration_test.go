@@ -20,7 +20,7 @@ func TestIntegration(t *testing.T) {
 	// 1. Build binaries
 	wd, _ := os.Getwd()
 	logryphPath := filepath.Join(wd, "logryph")
-	cliPath := filepath.Join(wd, "logryph-cli")
+	cliPath := filepath.Join(wd, "logyctl")
 
 	cmd := exec.Command("go", "build", "-o", logryphPath, "../main.go")
 	if err := cmd.Run(); err != nil {
@@ -32,13 +32,13 @@ func TestIntegration(t *testing.T) {
 		}
 	})
 
-	cmd = exec.Command("go", "build", "-o", cliPath, "../cmd/logryph-cli/main.go")
+	cmd = exec.Command("go", "build", "-o", cliPath, "../cmd/logyctl/main.go")
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("Failed to build logryph-cli: %v", err)
+		t.Fatalf("Failed to build logyctl: %v", err)
 	}
 	t.Cleanup(func() {
 		if err := os.Remove(cliPath); err != nil && !os.IsNotExist(err) {
-			t.Errorf("Failed to remove logryph-cli binary: %v", err)
+			t.Errorf("Failed to remove logyctl binary: %v", err)
 		}
 	})
 

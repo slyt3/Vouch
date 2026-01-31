@@ -48,7 +48,7 @@ func TraceCommand() {
 			}
 			fmt.Printf("• %s\n", t)
 		}
-		fmt.Println("\nUsage: logryph trace <task-id>")
+		fmt.Println("\nUsage: logyctl trace <task-id>")
 		return
 	}
 	taskID := os.Args[2]

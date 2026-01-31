@@ -24,7 +24,7 @@ type EvidenceManifest struct {
 
 func ExportCommand() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: logryph export <output-file.zip> [run-id]")
+		fmt.Println("Usage: logyctl export <output-file.zip> [run-id]")
 		os.Exit(1)
 	}
 	outputFile := os.Args[2]

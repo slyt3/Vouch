@@ -15,7 +15,7 @@ import (
 
 func ReplayCommand() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: logryph replay <event-id> [--target http://localhost:8080]")
+		fmt.Println("Usage: logyctl replay <event-id> [--target http://localhost:8080]")
 		os.Exit(1)
 	}
 	eventID := os.Args[2]

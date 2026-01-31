@@ -30,7 +30,7 @@ Status legend:
 - Status: Done
 - Scope: strict sequence checks, hash chaining, signing, verify
 - Acceptance:
-  - `logryph-cli verify` passes after a normal run
+  - `logyctl verify` passes after a normal run
 
 4) Admin endpoint protection
 - Status: Done

@@ -22,10 +22,10 @@ Rotate keys periodically or immediately after suspected compromise:
 
 ```bash
 # 1. Backup current key FIRST
-logryph-cli backup-key
+logyctl backup-key
 
 # 2. Rotate to new keypair (requires Logryph running)
-logryph-cli rekey
+logyctl rekey
 
 # Output shows old and new public keys:
 # {"old_public_key":"abc123...","new_public_key":"def456..."}
@@ -39,7 +39,7 @@ Create timestamped backups before rotation or as part of regular maintenance:
 
 ```bash
 # Create backup (saves to .logryph_key.backup.<timestamp>)
-logryph-cli backup-key
+logyctl backup-key
 
 # Output:
 # Key backed up to: .logryph_key.backup.20260127T143022Z
@@ -61,7 +61,7 @@ Restore from backup after key loss or corruption:
 pkill logryph
 
 # 2. List available backups
-logryph-cli list-backups
+logyctl list-backups
 
 # Output:
 # Key Backups
@@ -70,7 +70,7 @@ logryph-cli list-backups
 # .logryph_key.backup.20260120T091500Z (64 bytes, 2026-01-20 09:15:00)
 
 # 3. Restore from specific backup
-logryph-cli restore-key .logryph_key.backup.20260127T143022Z
+logyctl restore-key .logryph_key.backup.20260127T143022Z
 
 # Output:
 # Existing key moved to: .logryph_key.old
@@ -92,7 +92,7 @@ After key rotation, verify ledger integrity:
 
 ```bash
 # Full chain verification (checks all signatures)
-logryph-cli verify
+logyctl verify
 
 # If rotation was recent, verification will show:
 # - Events 0-N: Signed with old key (valid)
@@ -144,7 +144,7 @@ Logryph currently uses single-key signing. Future versions may support:
 Likely cause: `.logryph_key` deleted or corrupted.
 
 Solution:
-1. Restore from backup: `logryph-cli restore-key <backup-file>`
+1. Restore from backup: `logyctl restore-key <backup-file>`
 2. If no backup exists, Logryph will generate new key (WARNING: breaks chain verification for old events)
 
 ### "Signature verification failed" after restore
