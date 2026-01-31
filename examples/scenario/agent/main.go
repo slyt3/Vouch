@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	VouchProxy = "http://localhost:9999"
+	LogryphProxy = "http://localhost:9999"
 )
 
 type MCPRequest struct {
@@ -42,7 +42,7 @@ func main() {
 	})
 
 	fmt.Println("\n🤖 Task finished (with security failure).")
-	fmt.Println("🔍 Investigator: Use 'vouch-cli trace' to see what happened.")
+	fmt.Println("🔍 Investigator: Use 'logryph-cli trace' to see what happened.")
 }
 
 func call(client *http.Client, method string, params map[string]interface{}) {
@@ -54,7 +54,7 @@ func call(client *http.Client, method string, params map[string]interface{}) {
 	}
 
 	b, _ := json.Marshal(reqData)
-	req, err := http.NewRequest("POST", VouchProxy, bytes.NewBuffer(b))
+	req, err := http.NewRequest("POST", LogryphProxy, bytes.NewBuffer(b))
 	if err != nil {
 		log.Fatalf("Failed to create request: %v", err)
 	}
@@ -62,7 +62,7 @@ func call(client *http.Client, method string, params map[string]interface{}) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("❌ Connection error: %v (Is Vouch running?)\n", err)
+		fmt.Printf("❌ Connection error: %v (Is Logryph running?)\n", err)
 		return
 	}
 	defer func() {

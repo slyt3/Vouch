@@ -6,10 +6,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/crypto"
-	"github.com/slyt3/Vouch/internal/ledger/audit"
-	"github.com/slyt3/Vouch/internal/ledger/store"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/crypto"
+	"github.com/slyt3/Logryph/internal/ledger/audit"
+	"github.com/slyt3/Logryph/internal/ledger/store"
 )
 
 func VerifyCommand() {
@@ -19,14 +19,18 @@ func VerifyCommand() {
 	_ = verifyFlags.Parse(os.Args[2:])
 
 	// Open database
-	db, err := store.NewDB("vouch.db")
+	db, err := store.NewDB("logryph.db")
 	if err := assert.Check(err == nil, "failed to open database: %v", err); err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close database: %v", err)
+		}
+	}()
 
 	// Load signer
-	signer, err := crypto.NewSigner(".vouch_key")
+	signer, err := crypto.NewSigner(".logryph_key")
 	if err := assert.Check(err == nil, "failed to load signer: %v", err); err != nil {
 		log.Fatalf("Failed to load signer: %v", err)
 	}

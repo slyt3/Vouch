@@ -11,9 +11,14 @@ func TestKeyRotationChainVerification(t *testing.T) {
 	const maxEvents = 10
 	keyPath := ".test_key_rotation"
 
-	// Cleanup
-	defer os.Remove(keyPath)
-	defer os.Remove(keyPath + ".old")
+	t.Cleanup(func() {
+		if err := os.Remove(keyPath); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove key file: %v", err)
+		}
+		if err := os.Remove(keyPath + ".old"); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove old key file: %v", err)
+		}
+	})
 
 	// Create initial signer
 	signer1, err := NewSigner(keyPath)
@@ -117,10 +122,17 @@ func TestBackupRestore(t *testing.T) {
 	keyPath := ".test_key_backup"
 	backupPath := keyPath + ".backup"
 
-	// Cleanup
-	defer os.Remove(keyPath)
-	defer os.Remove(backupPath)
-	defer os.Remove(keyPath + ".old")
+	t.Cleanup(func() {
+		if err := os.Remove(keyPath); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove key file: %v", err)
+		}
+		if err := os.Remove(backupPath); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove backup file: %v", err)
+		}
+		if err := os.Remove(keyPath + ".old"); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove old key file: %v", err)
+		}
+	})
 
 	// Create signer and sign event
 	signer, err := NewSigner(keyPath)
@@ -147,7 +159,9 @@ func TestBackupRestore(t *testing.T) {
 	}
 
 	// Delete original
-	os.Remove(keyPath)
+	if err := os.Remove(keyPath); err != nil && !os.IsNotExist(err) {
+		t.Fatalf("Failed to remove original key: %v", err)
+	}
 
 	// Restore from backup
 	if err := os.Rename(backupPath, keyPath); err != nil {

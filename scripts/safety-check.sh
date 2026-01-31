@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== Vouch Safety-Critical Compliance Check ==="
+echo "=== Logryph Safety-Critical Compliance Check ==="
 
 # Rule 1: No recursion
 echo "Checking for recursion..."

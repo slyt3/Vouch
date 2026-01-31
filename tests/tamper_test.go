@@ -10,20 +10,24 @@ import (
 
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/slyt3/Vouch/internal/ledger"
-	"github.com/slyt3/Vouch/internal/ledger/audit"
-	"github.com/slyt3/Vouch/internal/ledger/store"
-	"github.com/slyt3/Vouch/internal/models"
+	"github.com/slyt3/Logryph/internal/ledger"
+	"github.com/slyt3/Logryph/internal/ledger/audit"
+	"github.com/slyt3/Logryph/internal/ledger/store"
+	"github.com/slyt3/Logryph/internal/models"
 )
 
 func TestTamperDetection(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "vouch-tamper-*")
+	tempDir, err := os.MkdirTemp("", "logryph-tamper-*")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	t.Cleanup(func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Errorf("failed to remove temp dir: %v", err)
+		}
+	})
 
-	dbPath := filepath.Join(tempDir, "vouch_tamper.db")
+	dbPath := filepath.Join(tempDir, "logryph_tamper.db")
 	keyPath := filepath.Join(tempDir, "test.key")
 
 	// 1. Setup Ledger and Signer
@@ -71,7 +75,11 @@ func TestTamperDetection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open raw db: %v", err)
 	}
-	defer rawDB.Close()
+	t.Cleanup(func() {
+		if err := rawDB.Close(); err != nil {
+			t.Errorf("failed to close raw db: %v", err)
+		}
+	})
 
 	t.Run("DetectHashMismatch", func(t *testing.T) {
 		// Tamper with the params of seq_index 1

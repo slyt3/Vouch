@@ -7,17 +7,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/ledger/store"
-	"github.com/slyt3/Vouch/internal/models"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/ledger/store"
+	"github.com/slyt3/Logryph/internal/models"
 )
 
 func TraceCommand() {
-	db, err := store.NewDB("vouch.db")
+	db, err := store.NewDB("logryph.db")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close database: %v", err)
+		}
+	}()
 
 	if len(os.Args) < 3 {
 		tasks, err := db.GetUniqueTasks()
@@ -44,7 +48,7 @@ func TraceCommand() {
 			}
 			fmt.Printf("• %s\n", t)
 		}
-		fmt.Println("\nUsage: vouch trace <task-id>")
+		fmt.Println("\nUsage: logryph trace <task-id>")
 		return
 	}
 	taskID := os.Args[2]
@@ -208,7 +212,7 @@ func generateHTMLReport(taskID string, events []models.Event, outputPath string)
 		}
 	}()
 
-	title := fmt.Sprintf("Vouch Forensic Report - Task %s", taskID)
+	title := fmt.Sprintf("Logryph Forensic Report - Task %s", taskID)
 	if _, err := fmt.Fprintf(f, `<!DOCTYPE html>
 <html>
 <head>
@@ -278,16 +282,22 @@ func generateHTMLReport(taskID string, events []models.Event, outputPath string)
 			}
 		}
 		if len(e.Response) > 0 {
-			fmt.Fprintf(f, `        <div class="payload"><strong>Response:</strong> %v</div>`, formatPayload(e.Response))
+			if _, err := fmt.Fprintf(f, `        <div class="payload"><strong>Response:</strong> %v</div>`, formatPayload(e.Response)); err != nil {
+				return err
+			}
 		}
 
-		fmt.Fprintf(f, `    </div>`)
+		if _, err := fmt.Fprintf(f, `    </div>`); err != nil {
+			return err
+		}
 	}
 
-	fmt.Fprintf(f, `
+	if _, err := fmt.Fprintf(f, `
 </body>
 </html>
-`)
+`); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -12,7 +12,9 @@ func BenchmarkHighFrequencyToolCalls(b *testing.B) {
 	// 1. Setup a mock target server (the MCP server)
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"jsonrpc":"2.0","id":1,"result":{}}`)
+		if _, err := fmt.Fprint(w, `{"jsonrpc":"2.0","id":1,"result":{}}`); err != nil {
+			b.Fatalf("failed to write response: %v", err)
+		}
 	}))
 	defer target.Close()
 
@@ -51,6 +53,8 @@ func BenchmarkHighFrequencyToolCalls(b *testing.B) {
 			b.Skip("Proxy not running at :9999")
 			return
 		}
-		resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			b.Fatalf("failed to close response body: %v", err)
+		}
 	}
 }

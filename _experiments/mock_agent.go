@@ -21,10 +21,10 @@ type TestResults struct {
 }
 
 func main() {
-	log.Println("Vouch Phase 1 - Mock Agent Test Suite")
+	log.Println("Logryph Phase 1 - Mock Agent Test Suite")
 	log.Println("Prerequisites:")
 	log.Println("   1. Start mock MCP server: go run tests/mock_mcp_server.go")
-	log.Println("   2. Start Vouch proxy: ./vouch")
+	log.Println("   2. Start Logryph proxy: ./logryph")
 	log.Println("   3. Then run this test")
 	time.Sleep(2 * time.Second)
 
@@ -257,8 +257,8 @@ func testAsyncWorkerPersistence(results *TestResults) {
 	results.SuccessfulCalls++
 	
 	log.Println("   [OK] Connection closed immediately")
-	log.Println("   [INFO] Check Vouch console logs to verify event was still logged")
-	log.Println("   [PASS] If you see the fs:write event in Vouch logs, async worker is working")
+	log.Println("   [INFO] Check Logryph console logs to verify event was still logged")
+	log.Println("   [PASS] If you see the fs:write event in Logryph logs, async worker is working")
 }
 
 func sendMCPRequest(req map[string]interface{}) (map[string]interface{}, error) {

@@ -7,8 +7,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/models"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/models"
 )
 
 const maxEventRows = 100000
@@ -97,7 +97,7 @@ func (db *DB) GetLastEvent(runID string) (seqIndex uint64, currentHash string, e
 }
 
 // GetAllEvents retrieves all events for a run, ordered by sequence
-func (db *DB) GetAllEvents(runID string) ([]models.Event, error) {
+func (db *DB) GetAllEvents(runID string) (events []models.Event, err error) {
 	if err := assert.Check(runID != "", "runID must not be empty"); err != nil {
 		return nil, err
 	}
@@ -114,9 +114,12 @@ func (db *DB) GetAllEvents(runID string) ([]models.Event, error) {
 	if err != nil {
 		return nil, fmt.Errorf("querying events: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("closing events rows: %w", closeErr)
+		}
+	}()
 
-	var events []models.Event
 	for i := 0; i < maxEventRows; i++ {
 		if !rows.Next() {
 			break
@@ -173,7 +176,7 @@ func (db *DB) GetAllEvents(runID string) ([]models.Event, error) {
 }
 
 // GetRecentEvents retrieves the N most recent events
-func (db *DB) GetRecentEvents(runID string, limit int) ([]models.Event, error) {
+func (db *DB) GetRecentEvents(runID string, limit int) (events []models.Event, err error) {
 	if err := assert.Check(runID != "", "runID must not be empty"); err != nil {
 		return nil, err
 	}
@@ -194,9 +197,12 @@ func (db *DB) GetRecentEvents(runID string, limit int) ([]models.Event, error) {
 	if err != nil {
 		return nil, fmt.Errorf("querying recent events: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("closing recent events rows: %w", closeErr)
+		}
+	}()
 
-	var events []models.Event
 	for i := 0; i < maxEventRows; i++ {
 		if !rows.Next() {
 			break
@@ -261,7 +267,7 @@ func (db *DB) GetEventByID(eventID string) (*models.Event, error) {
 }
 
 // GetEventsByTaskID retrieves all events for a specific task
-func (db *DB) GetEventsByTaskID(taskID string) ([]models.Event, error) {
+func (db *DB) GetEventsByTaskID(taskID string) (events []models.Event, err error) {
 	if err := assert.Check(taskID != "", "taskID must not be empty"); err != nil {
 		return nil, err
 	}
@@ -276,9 +282,12 @@ func (db *DB) GetEventsByTaskID(taskID string) ([]models.Event, error) {
 	if err != nil {
 		return nil, fmt.Errorf("querying task events: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("closing task events rows: %w", closeErr)
+		}
+	}()
 
-	var events []models.Event
 	for i := 0; i < maxEventRows; i++ {
 		if !rows.Next() {
 			break
@@ -308,7 +317,7 @@ func (db *DB) GetEventsByTaskID(taskID string) ([]models.Event, error) {
 }
 
 // GetRiskEvents returns events with high or critical risk
-func (db *DB) GetRiskEvents() ([]models.Event, error) {
+func (db *DB) GetRiskEvents() (events []models.Event, err error) {
 	query := `
 		SELECT id, run_id, seq_index, timestamp, actor, event_type, method, params, response,
 		       task_id, task_state, parent_id, policy_id, risk_level, prev_hash, current_hash, signature
@@ -320,9 +329,12 @@ func (db *DB) GetRiskEvents() ([]models.Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("closing risk events rows: %w", closeErr)
+		}
+	}()
 
-	var events []models.Event
 	for i := 0; i < maxEventRows; i++ {
 		if !rows.Next() {
 			break
@@ -351,15 +363,18 @@ func (db *DB) GetRiskEvents() ([]models.Event, error) {
 }
 
 // GetUniqueTasks returns all unique task IDs in the ledger
-func (db *DB) GetUniqueTasks() ([]string, error) {
+func (db *DB) GetUniqueTasks() (tasks []string, err error) {
 	query := `SELECT DISTINCT task_id FROM events WHERE task_id != ''`
 	rows, err := db.conn.Query(query)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("closing unique tasks rows: %w", closeErr)
+		}
+	}()
 
-	var tasks []string
 	for i := 0; i < maxEventRows; i++ {
 		if !rows.Next() {
 			break

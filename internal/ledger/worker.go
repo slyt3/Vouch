@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/crypto"
-	"github.com/slyt3/Vouch/internal/ledger/audit"
-	"github.com/slyt3/Vouch/internal/logging"
-	"github.com/slyt3/Vouch/internal/models"
-	"github.com/slyt3/Vouch/internal/pool"
-	"github.com/slyt3/Vouch/internal/ring"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/crypto"
+	"github.com/slyt3/Logryph/internal/ledger/audit"
+	"github.com/slyt3/Logryph/internal/logging"
+	"github.com/slyt3/Logryph/internal/models"
+	"github.com/slyt3/Logryph/internal/pool"
+	"github.com/slyt3/Logryph/internal/ring"
 )
 
 // BackpressureMode defines how the worker handles full ring buffer scenarios.
@@ -188,7 +188,7 @@ func (w *Worker) Start() error {
 	}
 
 	if !hasRuns {
-		runID, err := CreateGenesisBlock(w.db, w.signer, "Vouch-Agent")
+		runID, err := CreateGenesisBlock(w.db, w.signer, "Logryph-Agent")
 		if err != nil {
 			return fmt.Errorf("creating genesis block: %w", err)
 		}
@@ -442,7 +442,7 @@ func (w *Worker) anchorLoop() {
 			event.ID = uuid.New().String()[:8]
 			event.Timestamp = time.Now()
 			event.EventType = "anchor"
-			event.Method = "vouch:anchor"
+			event.Method = "logryph:anchor"
 			event.Actor = "system"
 			if event.Params == nil {
 				event.Params = make(map[string]interface{})

@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/crypto"
-	"github.com/slyt3/Vouch/internal/models"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/crypto"
+	"github.com/slyt3/Logryph/internal/models"
 )
 
 // mockEventRepository is a minimal mock for testing
@@ -111,7 +111,11 @@ func TestProcessEvent_NilEvent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create signer: %v", err)
 	}
-	defer os.Remove(".test_key_nil")
+	t.Cleanup(func() {
+		if err := os.Remove(".test_key_nil"); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove test key: %v", err)
+		}
+	})
 
 	mockDB := &mockEventRepository{}
 	processor := NewEventProcessor(mockDB, signer, "test-run-nil")
@@ -128,7 +132,11 @@ func TestProcessEvent_EmptyTaskID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create signer: %v", err)
 	}
-	defer os.Remove(".test_key_empty_task")
+	t.Cleanup(func() {
+		if err := os.Remove(".test_key_empty_task"); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove test key: %v", err)
+		}
+	})
 
 	mockDB := &mockEventRepository{}
 	processor := NewEventProcessor(mockDB, signer, "test-run-empty")
@@ -177,7 +185,11 @@ func TestProcessEvent_SequenceGap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create signer: %v", err)
 	}
-	defer os.Remove(".test_key_gap")
+	t.Cleanup(func() {
+		if err := os.Remove(".test_key_gap"); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove test key: %v", err)
+		}
+	})
 
 	mockDB := &mockEventRepository{
 		lastSeq:  5, // Simulate existing sequence
@@ -209,7 +221,11 @@ func TestProcessEvent_FirstEvent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create signer: %v", err)
 	}
-	defer os.Remove(".test_key_first")
+	t.Cleanup(func() {
+		if err := os.Remove(".test_key_first"); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove test key: %v", err)
+		}
+	})
 
 	mockDB := &mockEventRepository{}
 	processor := NewEventProcessor(mockDB, signer, "test-run-first")
@@ -250,7 +266,11 @@ func TestProcessEvent_ChainContinuity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create signer: %v", err)
 	}
-	defer os.Remove(".test_key_chain")
+	t.Cleanup(func() {
+		if err := os.Remove(".test_key_chain"); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove test key: %v", err)
+		}
+	})
 
 	mockDB := &mockEventRepository{}
 	processor := NewEventProcessor(mockDB, signer, "test-run-chain")
@@ -300,7 +320,11 @@ func TestProcessEvent_EmptyFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create signer: %v", err)
 	}
-	defer os.Remove(".test_key_empty")
+	t.Cleanup(func() {
+		if err := os.Remove(".test_key_empty"); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove test key: %v", err)
+		}
+	})
 
 	mockDB := &mockEventRepository{}
 	processor := NewEventProcessor(mockDB, signer, "test-run-empty-fields")

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/pool"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/pool"
 )
 
 const maxBlockWait = 2 * time.Second

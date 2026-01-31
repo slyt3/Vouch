@@ -100,30 +100,30 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Build vouch
+      - name: Build logryph
         run: |
-          go build -v -o vouch main.go
-          chmod +x vouch
+          go build -v -o logryph main.go
+          chmod +x logryph
 
-      - name: Build vouch-cli
+      - name: Build logryph-cli
         run: |
-          go build -v -o vouch-cli cmd/vouch-cli/main.go
-          chmod +x vouch-cli
+          go build -v -o logryph-cli cmd/logryph-cli/main.go
+          chmod +x logryph-cli
 
       - name: Verify binaries
         run: |
-          ./vouch -h || true
-          ./vouch-cli --help || true
-          file vouch
-          file vouch-cli
+          ./logryph -h || true
+          ./logryph-cli --help || true
+          file logryph
+          file logryph-cli
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: binaries
           path: |
-            vouch
-            vouch-cli
+            logryph
+            logryph-cli
           retention-days: 7
 
   integration:

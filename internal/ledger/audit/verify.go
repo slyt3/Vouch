@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/crypto"
-	"github.com/slyt3/Vouch/internal/models"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/crypto"
+	"github.com/slyt3/Logryph/internal/models"
 )
 
 // EventReader defines the subset of ledger operations needed for verification.
@@ -194,14 +194,28 @@ func FetchBitcoinAnchorAtHeight(height uint64) (*Anchor, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fetching block hash: %w", err)
 	}
-	defer resp.Body.Close()
+	closeBody := func(context string) error {
+		if err := resp.Body.Close(); err != nil {
+			return fmt.Errorf("closing %s: %w", context, err)
+		}
+		return nil
+	}
 
 	if resp.StatusCode != 200 {
+		if closeErr := closeBody("block hash response"); closeErr != nil {
+			return nil, fmt.Errorf("blockstream api error: %d; %w", resp.StatusCode, closeErr)
+		}
 		return nil, fmt.Errorf("blockstream api error: %d", resp.StatusCode)
 	}
 
 	var hash string
 	if _, err := fmt.Fscan(resp.Body, &hash); err != nil {
+		if closeErr := closeBody("block hash response"); closeErr != nil {
+			return nil, fmt.Errorf("reading block hash: %v; %w", err, closeErr)
+		}
+		return nil, err
+	}
+	if err := closeBody("block hash response"); err != nil {
 		return nil, err
 	}
 

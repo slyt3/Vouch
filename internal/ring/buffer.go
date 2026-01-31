@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/slyt3/Vouch/internal/assert"
+	"github.com/slyt3/Logryph/internal/assert"
 )
 
 var ErrBufferFull = errors.New("ring buffer is full")

@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/slyt3/Vouch/internal/crypto"
-	"github.com/slyt3/Vouch/internal/ledger/audit"
-	"github.com/slyt3/Vouch/internal/pool"
+	"github.com/slyt3/Logryph/internal/crypto"
+	"github.com/slyt3/Logryph/internal/ledger/audit"
+	"github.com/slyt3/Logryph/internal/pool"
 )
 
 // CreateGenesisBlock creates the initial genesis event for a new run
@@ -24,7 +24,7 @@ func CreateGenesisBlock(db EventRepository, signer *crypto.Signer, agentName str
 	genesisEvent.Timestamp = time.Now()
 	genesisEvent.Actor = "system"
 	genesisEvent.EventType = "genesis"
-	genesisEvent.Method = "vouch:init"
+	genesisEvent.Method = "logryph:init"
 	genesisEvent.Params["public_key"] = signer.GetPublicKey()
 	genesisEvent.Params["agent_name"] = agentName
 	genesisEvent.Params["version"] = "1.0.0"

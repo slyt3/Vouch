@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/slyt3/Vouch/internal/assert"
+	"github.com/slyt3/Logryph/internal/assert"
 	"github.com/ucarion/jcs"
 )
 

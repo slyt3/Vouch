@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/assert"
+	"github.com/slyt3/Logryph/internal/assert"
 )
 
 const (
@@ -56,7 +56,7 @@ func init() {
 }
 
 // Debug logs a debug-level message with structured fields in JSON format.
-// Respects VOUCH_LOG_LEVEL environment variable. Returns silently if msg is empty.
+// Respects LOGRYPH_LOG_LEVEL environment variable. Returns silently if msg is empty.
 func Debug(msg string, fields Fields) {
 	if err := assert.Check(msg != "", "log message must not be empty"); err != nil {
 		return
@@ -68,7 +68,7 @@ func Debug(msg string, fields Fields) {
 }
 
 // Info logs an info-level message with structured fields in JSON format.
-// Default log level if VOUCH_LOG_LEVEL is unset. Returns silently if msg is empty.
+// Default log level if LOGRYPH_LOG_LEVEL is unset. Returns silently if msg is empty.
 func Info(msg string, fields Fields) {
 	if err := assert.Check(msg != "", "log message must not be empty"); err != nil {
 		return
@@ -148,7 +148,7 @@ func shouldLog(level string) bool {
 		return false
 	}
 	levelOnce.Do(func() {
-		envLevel := strings.ToLower(os.Getenv("VOUCH_LOG_LEVEL"))
+		envLevel := strings.ToLower(os.Getenv("LOGRYPH_LOG_LEVEL"))
 		if envLevel == "" {
 			envLevel = "info"
 		}

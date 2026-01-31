@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/logging"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/logging"
 	"gopkg.in/yaml.v3"
 )
 
-// Config represents the vouch-policy.yaml structure (2026.1 spec).
+// Config represents the logryph-policy.yaml structure (2026.1 spec).
 // Includes version, defaults section (retention, signing, log level), and policies list.
 type Config struct {
 	Version  string `yaml:"version"`
@@ -37,7 +37,7 @@ type Rule struct {
 	Redact          []string            `yaml:"redact,omitempty"` // List of param keys to redact
 }
 
-// ObserverEngine handles policy evaluation and hot-reload from vouch-policy.yaml.
+// ObserverEngine handles policy evaluation and hot-reload from logryph-policy.yaml.
 // Reloads config every 5 seconds when Watch() is running.
 // Thread-safe for concurrent policy lookups.
 type ObserverEngine struct {
@@ -72,7 +72,7 @@ func NewObserverEngine(configPath string) (*ObserverEngine, error) {
 	}, nil
 }
 
-// loadConfig loads the vouch-policy.yaml file
+// loadConfig loads the logryph-policy.yaml file
 func loadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

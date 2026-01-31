@@ -9,18 +9,26 @@ import (
 
 func TestDB(t *testing.T) {
 	// Setup temporary database
-	tmpDir, err := os.MkdirTemp("", "vouch-test-*")
+	tmpDir, err := os.MkdirTemp("", "logryph-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	t.Cleanup(func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	})
 
 	// Create database
-	db, err := NewDB(filepath.Join(tmpDir, "vouch.db"))
+	db, err := NewDB(filepath.Join(tmpDir, "logryph.db"))
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("Failed to close database: %v", err)
+		}
+	})
 
 	// Test HasRuns (initial)
 	hasRuns, err := db.HasRuns()

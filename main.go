@@ -13,13 +13,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/api"
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/core"
-	"github.com/slyt3/Vouch/internal/interceptor"
-	"github.com/slyt3/Vouch/internal/ledger"
-	"github.com/slyt3/Vouch/internal/ledger/store"
-	"github.com/slyt3/Vouch/internal/observer"
+	"github.com/slyt3/Logryph/internal/api"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/core"
+	"github.com/slyt3/Logryph/internal/interceptor"
+	"github.com/slyt3/Logryph/internal/ledger"
+	"github.com/slyt3/Logryph/internal/ledger/store"
+	"github.com/slyt3/Logryph/internal/observer"
 )
 
 const (
@@ -28,7 +28,7 @@ const (
 )
 
 func main() {
-	configPath := flag.String("config", "vouch-policy.yaml", "path to policy configuration")
+	configPath := flag.String("config", "logryph-policy.yaml", "path to policy configuration")
 	target := flag.String("target", "http://localhost:8080", "target tool server URL")
 	listenPort := flag.Int("port", 9999, "port to listen on")
 	backpressure := flag.String("backpressure", "drop", "backpressure strategy: 'drop' (fail-open) or 'block' (fail-closed)")
@@ -49,25 +49,26 @@ func main() {
 	obsEngine.Watch()
 
 	// 2. Initialize Ledger Store & Worker
-	db, err := store.NewDB("vouch.db")
+	db, err := store.NewDB("logryph.db")
 	if err != nil {
 		log.Fatalf("Database init failed: %v", err)
 	}
-	worker, err := ledger.NewWorker(1000, db, ".vouch_key")
+	worker, err := ledger.NewWorker(1000, db, ".logryph_key")
 	if err != nil {
 		log.Fatalf("Worker init failed: %v", err)
 	}
-	if *backpressure == "block" {
+	switch *backpressure {
+	case "block":
 		if err := worker.SetBackpressureMode(ledger.BackpressureBlock); err != nil {
 			log.Fatalf("Failed to set backpressure mode: %v", err)
 		}
 		log.Printf("Backpressure mode: BLOCK (fail-closed) - requests will block if buffer is full")
-	} else if *backpressure == "drop" {
+	case "drop":
 		if err := worker.SetBackpressureMode(ledger.BackpressureDrop); err != nil {
 			log.Fatalf("Failed to set backpressure mode: %v", err)
 		}
 		log.Printf("Backpressure mode: DROP (fail-open, default) - events dropped if buffer is full")
-	} else {
+	default:
 		log.Fatalf("Invalid backpressure mode '%s': must be 'drop' or 'block'", *backpressure)
 	}
 	if err := worker.Start(); err != nil {

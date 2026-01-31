@@ -1,16 +1,16 @@
 # Runtime files
-.vouch_key
+.logryph_key
 *.db
 *.db-shm
 *.db-wal
 
 # Build artifacts
-/vouch
-/vouch-cli
-/vouch-proxy
+/logryph
+/logryph-cli
+/logryph-proxy
 
 # Specification
-VOUCH_SPEC.txt
+LOGRYPH_SPEC.txt
 
 # Go build cache
 *.test

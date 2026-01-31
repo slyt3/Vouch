@@ -19,24 +19,36 @@ import (
 func TestIntegration(t *testing.T) {
 	// 1. Build binaries
 	wd, _ := os.Getwd()
-	vouchPath := filepath.Join(wd, "vouch")
-	cliPath := filepath.Join(wd, "vouch-cli")
+	logryphPath := filepath.Join(wd, "logryph")
+	cliPath := filepath.Join(wd, "logryph-cli")
 
-	cmd := exec.Command("go", "build", "-o", vouchPath, "../main.go")
+	cmd := exec.Command("go", "build", "-o", logryphPath, "../main.go")
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("Failed to build vouch: %v", err)
+		t.Fatalf("Failed to build logryph: %v", err)
 	}
-	defer os.Remove(vouchPath)
+	t.Cleanup(func() {
+		if err := os.Remove(logryphPath); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove logryph binary: %v", err)
+		}
+	})
 
-	cmd = exec.Command("go", "build", "-o", cliPath, "../cmd/vouch-cli/main.go")
+	cmd = exec.Command("go", "build", "-o", cliPath, "../cmd/logryph-cli/main.go")
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("Failed to build vouch-cli: %v", err)
+		t.Fatalf("Failed to build logryph-cli: %v", err)
 	}
-	defer os.Remove(cliPath)
+	t.Cleanup(func() {
+		if err := os.Remove(cliPath); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove logryph-cli binary: %v", err)
+		}
+	})
 
 	// 2. Setup environment
-	tmpDir, _ := os.MkdirTemp("", "vouch-integration-*")
-	defer os.RemoveAll(tmpDir)
+	tmpDir, _ := os.MkdirTemp("", "logryph-integration-*")
+	t.Cleanup(func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	})
 
 	// Copy schema and policy
 	schemaContent, _ := os.ReadFile("../schema.sql")
@@ -49,7 +61,7 @@ policies:
     match_methods: ["aws:ec2:launch"]
     risk_level: critical
 `
-	_ = os.WriteFile(filepath.Join(tmpDir, "vouch-policy.yaml"), []byte(policyContent), 0644)
+	_ = os.WriteFile(filepath.Join(tmpDir, "logryph-policy.yaml"), []byte(policyContent), 0644)
 
 	// 3. Start Mock MCP Server
 	mockServer := &http.Server{
@@ -72,18 +84,22 @@ policies:
 	go func() {
 		_ = mockServer.ListenAndServe()
 	}()
-	defer mockServer.Close()
+	t.Cleanup(func() {
+		if err := mockServer.Close(); err != nil {
+			t.Errorf("Failed to close mock server: %v", err)
+		}
+	})
 
-	// 4. Start Vouch Proxy
-	vouchCmd := exec.Command(vouchPath)
-	vouchCmd.Dir = tmpDir
+	// 4. Start Logryph Proxy
+	logryphCmd := exec.Command(logryphPath)
+	logryphCmd.Dir = tmpDir
 	// Create a pipe for stderr (standard log output goes here)
-	stderr, _ := vouchCmd.StderrPipe()
-	stdout, _ := vouchCmd.StdoutPipe()
-	if err := vouchCmd.Start(); err != nil {
-		t.Fatalf("Failed to start vouch: %v", err)
+	stderr, _ := logryphCmd.StderrPipe()
+	stdout, _ := logryphCmd.StdoutPipe()
+	if err := logryphCmd.Start(); err != nil {
+		t.Fatalf("Failed to start logryph: %v", err)
 	}
-	defer func() { _ = vouchCmd.Process.Kill() }()
+	defer func() { _ = logryphCmd.Process.Kill() }()
 
 	// Wait for readiness
 	ready := make(chan bool)
@@ -104,8 +120,8 @@ policies:
 			}
 		}
 	}
-	go monitor(stdout, "vouch-out")
-	go monitor(stderr, "vouch-err")
+	go monitor(stdout, "logryph-out")
+	go monitor(stderr, "logryph-err")
 
 	select {
 	case <-ready:
@@ -178,9 +194,15 @@ func sendRequest(url string, reqBody interface{}) (map[string]interface{}, error
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	closeErr := resp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	if closeErr != nil {
+		return nil, closeErr
+	}
 	var res map[string]interface{}
 	_ = json.Unmarshal(body, &res)
 	return res, nil

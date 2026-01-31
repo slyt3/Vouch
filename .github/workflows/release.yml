@@ -30,7 +30,7 @@ jobs:
         uses: anchore/sbom-action@v0
         with:
           format: spdx-json
-          output-file: vouch-sbom.spdx.json
+          output-file: logryph-sbom.spdx.json
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
@@ -44,6 +44,6 @@ jobs:
       - name: Upload SBOM to release
         uses: softprops/action-gh-release@v1
         with:
-          files: vouch-sbom.spdx.json
+          files: logryph-sbom.spdx.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

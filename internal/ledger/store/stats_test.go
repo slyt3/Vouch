@@ -9,17 +9,25 @@ import (
 
 func TestStats(t *testing.T) {
 	// Setup temporary database
-	tmpDir, err := os.MkdirTemp("", "vouch-stats-test-*")
+	tmpDir, err := os.MkdirTemp("", "logryph-stats-test-*")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	t.Cleanup(func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("failed to remove temp dir: %v", err)
+		}
+	})
 
-	db, err := NewDB(filepath.Join(tmpDir, "vouch.db"))
+	db, err := NewDB(filepath.Join(tmpDir, "logryph.db"))
 	if err != nil {
 		t.Fatalf("failed to create database: %v", err)
 	}
-	defer db.Close()
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("failed to close database: %v", err)
+		}
+	})
 
 	runID := "run-stats-1"
 	_ = db.InsertRun(runID, "agent-1", "gen-hash", "pub-key")
@@ -28,7 +36,7 @@ func TestStats(t *testing.T) {
 
 	// Create some events
 	// 1. genesis (seq 0) - auto created by InsertRun in production but here we test InsertEvent
-	_ = db.InsertEvent("e0", runID, 0, now, "system", "genesis", "vouch:init", "{}", "{}", "", "", "", "", "", "000", "h0", "s0")
+	_ = db.InsertEvent("e0", runID, 0, now, "system", "genesis", "logryph:init", "{}", "{}", "", "", "", "", "", "000", "h0", "s0")
 	// 2. tool call (low risk)
 	_ = db.InsertEvent("e1", runID, 1, now, "agent", "tool_call", "mcp:list_tools", "{}", "{}", "", "", "", "p1", "low", "h0", "h1", "s1")
 	// 3. tool call (high risk)

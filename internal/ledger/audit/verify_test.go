@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/crypto"
-	"github.com/slyt3/Vouch/internal/ledger"
-	"github.com/slyt3/Vouch/internal/ledger/audit"
-	"github.com/slyt3/Vouch/internal/ledger/store"
-	"github.com/slyt3/Vouch/internal/models"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/crypto"
+	"github.com/slyt3/Logryph/internal/ledger"
+	"github.com/slyt3/Logryph/internal/ledger/audit"
+	"github.com/slyt3/Logryph/internal/ledger/store"
+	"github.com/slyt3/Logryph/internal/models"
 )
 
 func TestVerifyChain(t *testing.T) {
@@ -20,16 +20,24 @@ func TestVerifyChain(t *testing.T) {
 	defer func() { assert.StrictMode = true }()
 
 	// Setup
-	tmpDir, _ := os.MkdirTemp("", "vouch-verify-test-*")
-	defer os.RemoveAll(tmpDir)
+	tmpDir, _ := os.MkdirTemp("", "logryph-verify-test-*")
+	t.Cleanup(func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("failed to remove temp dir: %v", err)
+		}
+	})
 
-	db, err := store.NewDB(filepath.Join(tmpDir, "vouch.db"))
+	db, err := store.NewDB(filepath.Join(tmpDir, "logryph.db"))
 	if err != nil {
 		t.Fatalf("failed to create database: %v", err)
 	}
-	defer db.Close()
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("failed to close database: %v", err)
+		}
+	})
 
-	signer, _ := crypto.NewSigner(".vouch_key")
+	signer, _ := crypto.NewSigner(".logryph_key")
 
 	// Create valid chain
 	agentName := "test-agent"

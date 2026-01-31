@@ -7,11 +7,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/core"
-	"github.com/slyt3/Vouch/internal/ledger"
-	"github.com/slyt3/Vouch/internal/logging"
-	"github.com/slyt3/Vouch/internal/pool"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/core"
+	"github.com/slyt3/Logryph/internal/ledger"
+	"github.com/slyt3/Logryph/internal/logging"
+	"github.com/slyt3/Logryph/internal/pool"
 )
 
 // LatencySnapshot is aliased from ledger package for clarity
@@ -30,21 +30,21 @@ func NewHandlers(engine *core.Engine) *Handlers {
 }
 
 // HandleRekey rotates the Ed25519 signing key and returns the new public key.
-// Requires POST method and X-Admin-Token header if VOUCH_ADMIN_TOKEN is set.
+// Requires POST method and X-Admin-Token header if LOGRYPH_ADMIN_TOKEN is set.
 // Returns 405 for non-POST, 401 for missing/invalid token, 500 on rotation failure.
 func (h *Handlers) HandleRekey(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	adminToken := os.Getenv("VOUCH_ADMIN_TOKEN")
+	adminToken := os.Getenv("LOGRYPH_ADMIN_TOKEN")
 	if adminToken != "" {
 		if r.Header.Get("X-Admin-Token") != adminToken {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 	}
-	oldPubKey, newPubKey, err := h.Core.Worker.GetSigner().RotateKey(".vouch_key")
+	oldPubKey, newPubKey, err := h.Core.Worker.GetSigner().RotateKey(".logryph_key")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -208,41 +208,103 @@ func (h *Handlers) formatPrometheusText(w http.ResponseWriter, m *prometheusMetr
 		return
 	}
 
-	fmt.Fprintf(w, "# HELP vouch_pool_event_hits_total Total hits on the event pool\n")
-	fmt.Fprintf(w, "# TYPE vouch_pool_event_hits_total counter\n")
-	fmt.Fprintf(w, "vouch_pool_event_hits_total %d\n", m.PoolEventHits)
+	writef := func(format string, args ...interface{}) bool {
+		if _, err := fmt.Fprintf(w, format, args...); err != nil {
+			logging.Error("prometheus_write_failed", logging.Fields{Component: "api", Error: err.Error()})
+			return false
+		}
+		return true
+	}
 
-	fmt.Fprintf(w, "# HELP vouch_pool_event_misses_total Total misses (allocations) in the event pool\n")
-	fmt.Fprintf(w, "# TYPE vouch_pool_event_misses_total counter\n")
-	fmt.Fprintf(w, "vouch_pool_event_misses_total %d\n", m.PoolEventMisses)
+	if !writef("# HELP logryph_pool_event_hits_total Total hits on the event pool\n") {
+		return
+	}
+	if !writef("# TYPE logryph_pool_event_hits_total counter\n") {
+		return
+	}
+	if !writef("logryph_pool_event_hits_total %d\n", m.PoolEventHits) {
+		return
+	}
 
-	fmt.Fprintf(w, "# HELP vouch_ledger_events_processed_total Total events successfully written to the ledger\n")
-	fmt.Fprintf(w, "# TYPE vouch_ledger_events_processed_total counter\n")
-	fmt.Fprintf(w, "vouch_ledger_events_processed_total %d\n", m.EventsProcessed)
+	if !writef("# HELP logryph_pool_event_misses_total Total misses (allocations) in the event pool\n") {
+		return
+	}
+	if !writef("# TYPE logryph_pool_event_misses_total counter\n") {
+		return
+	}
+	if !writef("logryph_pool_event_misses_total %d\n", m.PoolEventMisses) {
+		return
+	}
 
-	fmt.Fprintf(w, "# HELP vouch_ledger_events_dropped_total Total events dropped due to backpressure\n")
-	fmt.Fprintf(w, "# TYPE vouch_ledger_events_dropped_total counter\n")
-	fmt.Fprintf(w, "vouch_ledger_events_dropped_total %d\n", m.EventsDropped)
+	if !writef("# HELP logryph_ledger_events_processed_total Total events successfully written to the ledger\n") {
+		return
+	}
+	if !writef("# TYPE logryph_ledger_events_processed_total counter\n") {
+		return
+	}
+	if !writef("logryph_ledger_events_processed_total %d\n", m.EventsProcessed) {
+		return
+	}
 
-	fmt.Fprintf(w, "# HELP vouch_ledger_events_blocked_total Total submit attempts blocked by backpressure\n")
-	fmt.Fprintf(w, "# TYPE vouch_ledger_events_blocked_total counter\n")
-	fmt.Fprintf(w, "vouch_ledger_events_blocked_total %d\n", m.EventsBlocked)
+	if !writef("# HELP logryph_ledger_events_dropped_total Total events dropped due to backpressure\n") {
+		return
+	}
+	if !writef("# TYPE logryph_ledger_events_dropped_total counter\n") {
+		return
+	}
+	if !writef("logryph_ledger_events_dropped_total %d\n", m.EventsDropped) {
+		return
+	}
 
-	fmt.Fprintf(w, "# HELP vouch_ledger_backpressure_mode Current backpressure mode (drop|block)\n")
-	fmt.Fprintf(w, "# TYPE vouch_ledger_backpressure_mode gauge\n")
-	fmt.Fprintf(w, "vouch_ledger_backpressure_mode{mode=\"%s\"} 1\n", m.BackpressureMode)
+	if !writef("# HELP logryph_ledger_events_blocked_total Total submit attempts blocked by backpressure\n") {
+		return
+	}
+	if !writef("# TYPE logryph_ledger_events_blocked_total counter\n") {
+		return
+	}
+	if !writef("logryph_ledger_events_blocked_total %d\n", m.EventsBlocked) {
+		return
+	}
 
-	fmt.Fprintf(w, "# HELP vouch_engine_active_tasks_total Number of currently active causal tasks\n")
-	fmt.Fprintf(w, "# TYPE vouch_engine_active_tasks_total gauge\n")
-	fmt.Fprintf(w, "vouch_engine_active_tasks_total %d\n", m.ActiveTasks)
+	if !writef("# HELP logryph_ledger_backpressure_mode Current backpressure mode (drop|block)\n") {
+		return
+	}
+	if !writef("# TYPE logryph_ledger_backpressure_mode gauge\n") {
+		return
+	}
+	if !writef("logryph_ledger_backpressure_mode{mode=\"%s\"} 1\n", m.BackpressureMode) {
+		return
+	}
 
-	fmt.Fprintf(w, "# HELP vouch_ledger_queue_depth Current queue depth\n")
-	fmt.Fprintf(w, "# TYPE vouch_ledger_queue_depth gauge\n")
-	fmt.Fprintf(w, "vouch_ledger_queue_depth %d\n", m.QueueDepth)
+	if !writef("# HELP logryph_engine_active_tasks_total Number of currently active causal tasks\n") {
+		return
+	}
+	if !writef("# TYPE logryph_engine_active_tasks_total gauge\n") {
+		return
+	}
+	if !writef("logryph_engine_active_tasks_total %d\n", m.ActiveTasks) {
+		return
+	}
 
-	fmt.Fprintf(w, "# HELP vouch_ledger_queue_capacity Queue capacity\n")
-	fmt.Fprintf(w, "# TYPE vouch_ledger_queue_capacity gauge\n")
-	fmt.Fprintf(w, "vouch_ledger_queue_capacity %d\n", m.QueueCapacity)
+	if !writef("# HELP logryph_ledger_queue_depth Current queue depth\n") {
+		return
+	}
+	if !writef("# TYPE logryph_ledger_queue_depth gauge\n") {
+		return
+	}
+	if !writef("logryph_ledger_queue_depth %d\n", m.QueueDepth) {
+		return
+	}
+
+	if !writef("# HELP logryph_ledger_queue_capacity Queue capacity\n") {
+		return
+	}
+	if !writef("# TYPE logryph_ledger_queue_capacity gauge\n") {
+		return
+	}
+	if !writef("logryph_ledger_queue_capacity %d\n", m.QueueCapacity) {
+		return
+	}
 
 	h.formatLatencyHistogram(w, &m.LatencyMetrics)
 }
@@ -256,8 +318,20 @@ func (h *Handlers) formatLatencyHistogram(w http.ResponseWriter, latency *Latenc
 		return
 	}
 
-	fmt.Fprintf(w, "# HELP vouch_ledger_event_latency_seconds Event processing latency\n")
-	fmt.Fprintf(w, "# TYPE vouch_ledger_event_latency_seconds histogram\n")
+	writef := func(format string, args ...interface{}) bool {
+		if _, err := fmt.Fprintf(w, format, args...); err != nil {
+			logging.Error("prometheus_write_failed", logging.Fields{Component: "api", Error: err.Error()})
+			return false
+		}
+		return true
+	}
+
+	if !writef("# HELP logryph_ledger_event_latency_seconds Event processing latency\n") {
+		return
+	}
+	if !writef("# TYPE logryph_ledger_event_latency_seconds histogram\n") {
+		return
+	}
 
 	const maxBuckets = 20
 	for i := 0; i < maxBuckets; i++ {
@@ -271,8 +345,14 @@ func (h *Handlers) formatLatencyHistogram(w http.ResponseWriter, latency *Latenc
 		} else {
 			label = fmt.Sprintf("%.6f", float64(upper)/float64(time.Second))
 		}
-		fmt.Fprintf(w, "vouch_ledger_event_latency_seconds_bucket{le=\"%s\"} %d\n", label, latency.Counts[i])
+		if !writef("logryph_ledger_event_latency_seconds_bucket{le=\"%s\"} %d\n", label, latency.Counts[i]) {
+			return
+		}
 	}
-	fmt.Fprintf(w, "vouch_ledger_event_latency_seconds_sum %.6f\n", float64(latency.SumNs)/float64(time.Second))
-	fmt.Fprintf(w, "vouch_ledger_event_latency_seconds_count %d\n", latency.Count)
+	if !writef("logryph_ledger_event_latency_seconds_sum %.6f\n", float64(latency.SumNs)/float64(time.Second)) {
+		return
+	}
+	if !writef("logryph_ledger_event_latency_seconds_count %d\n", latency.Count) {
+		return
+	}
 }

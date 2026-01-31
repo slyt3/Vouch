@@ -10,12 +10,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/ledger/store"
+	"github.com/slyt3/Logryph/internal/ledger/store"
 )
 
 func ReplayCommand() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: vouch replay <event-id> [--target http://localhost:8080]")
+		fmt.Println("Usage: logryph replay <event-id> [--target http://localhost:8080]")
 		os.Exit(1)
 	}
 	eventID := os.Args[2]
@@ -25,11 +25,15 @@ func ReplayCommand() {
 		targetURL = os.Args[4]
 	}
 
-	db, err := store.NewDB("vouch.db")
+	db, err := store.NewDB("logryph.db")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close database: %v", err)
+		}
+	}()
 
 	event, err := db.GetEventByID(eventID)
 	if err != nil {
@@ -51,7 +55,7 @@ func ReplayCommand() {
 		log.Fatalf("Failed to create request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Vouch-Replay", event.ID)
+	req.Header.Set("X-Logryph-Replay", event.ID)
 
 	// 2. Execute
 	client := &http.Client{}
@@ -60,7 +64,11 @@ func ReplayCommand() {
 	if err != nil {
 		log.Fatalf("Replay failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Failed to close replay response: %v", err)
+		}
+	}()
 	duration := time.Since(start)
 
 	body, _ := io.ReadAll(resp.Body)

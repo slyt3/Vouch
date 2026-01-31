@@ -4,9 +4,9 @@ before:
     - go mod verify
 
 builds:
-  - id: vouch
+  - id: logryph
     main: ./main.go
-    binary: vouch
+    binary: logryph
     env:
       - CGO_ENABLED=1
     goos:
@@ -27,9 +27,9 @@ builds:
     flags:
       - -trimpath
 
-  - id: vouch-cli
-    main: ./cmd/vouch-cli/main.go
-    binary: vouch-cli
+  - id: logryph-cli
+    main: ./cmd/logryph-cli/main.go
+    binary: logryph-cli
     env:
       - CGO_ENABLED=0
     goos:
@@ -51,9 +51,9 @@ builds:
       - -trimpath
 
 archives:
-  - id: vouch
+  - id: logryph
     builds:
-      - vouch
+      - logryph
     name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
@@ -66,11 +66,11 @@ archives:
     files:
       - LICENSE
       - README.md
-      - vouch-policy.yaml
+      - logryph-policy.yaml
 
-  - id: vouch-cli
+  - id: logryph-cli
     builds:
-      - vouch-cli
+      - logryph-cli
     name_template: >-
       {{ .ProjectName }}-cli_
       {{- .Version }}_
@@ -92,7 +92,7 @@ snapshot:
   name_template: "{{ incpatch .Version }}-next"
 
 sboms:
-  - id: vouch-sbom
+  - id: logryph-sbom
     artifacts: archive
     documents:
       - "${artifact}.sbom.spdx.json"
@@ -125,7 +125,7 @@ release:
   prerelease: auto
   mode: append
   header: |
-    ## Vouch {{ .Tag }} Release
+    ## Logryph {{ .Tag }} Release
     
     Cryptographically auditable MCP proxy with tamper-evident ledger.
     

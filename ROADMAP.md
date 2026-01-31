@@ -1,4 +1,4 @@
-# Vouch Roadmap (Detailed)
+# Logryph Roadmap (Detailed)
 
 Status legend:
 - Done: completed and verified
@@ -30,7 +30,7 @@ Status legend:
 - Status: Done
 - Scope: strict sequence checks, hash chaining, signing, verify
 - Acceptance:
-  - `vouch-cli verify` passes after a normal run
+  - `logryph-cli verify` passes after a normal run
 
 4) Admin endpoint protection
 - Status: Done
@@ -85,8 +85,6 @@ Status legend:
   - Restore workflow is documented and tested
   - CLI commands: backup-key, restore-key, list-backups
   - KEY_MANAGEMENT.md guide with security best practices
-  - CLI commands: backup-key, restore-key, list-backups
-  - Comprehensive KEY_MANAGEMENT.md documentation
 
 11) Evidence bag signing
 - Status: Planned

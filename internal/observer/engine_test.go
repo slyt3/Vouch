@@ -23,7 +23,11 @@ policies:
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(tmpFile)
+	t.Cleanup(func() {
+		if err := os.Remove(tmpFile); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove temp file: %v", err)
+		}
+	})
 
 	engine, err := NewObserverEngine(tmpFile)
 	if err != nil {
@@ -83,7 +87,11 @@ policies: []
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(tmpFile)
+	t.Cleanup(func() {
+		if err := os.Remove(tmpFile); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove temp file: %v", err)
+		}
+	})
 
 	engine, err := NewObserverEngine(tmpFile)
 	if err != nil {

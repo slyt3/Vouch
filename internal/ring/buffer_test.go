@@ -3,7 +3,7 @@ package ring
 import (
 	"testing"
 
-	"github.com/slyt3/Vouch/internal/assert"
+	"github.com/slyt3/Logryph/internal/assert"
 )
 
 // TestNew_EdgeCases tests buffer creation with various edge case inputs

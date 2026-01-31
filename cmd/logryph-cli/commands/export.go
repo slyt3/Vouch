@@ -9,8 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/ledger"
-	"github.com/slyt3/Vouch/internal/ledger/store"
+	"github.com/slyt3/Logryph/internal/ledger"
+	"github.com/slyt3/Logryph/internal/ledger/store"
 )
 
 type EvidenceManifest struct {
@@ -24,7 +24,7 @@ type EvidenceManifest struct {
 
 func ExportCommand() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: vouch export <output-file.zip> [run-id]")
+		fmt.Println("Usage: logryph export <output-file.zip> [run-id]")
 		os.Exit(1)
 	}
 	outputFile := os.Args[2]
@@ -43,11 +43,15 @@ func ExportCommand() {
 
 func ExportEvidenceBag(zipPath, targetRunID string) error {
 	// 1. Open DB
-	db, err := store.NewDB("vouch.db")
+	db, err := store.NewDB("logryph.db")
 	if err != nil {
 		return fmt.Errorf("opening db: %w", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close database: %v", err)
+		}
+	}()
 
 	// 2. Identify Run ID
 	runID := targetRunID
@@ -73,7 +77,7 @@ func ExportEvidenceBag(zipPath, targetRunID string) error {
 	}
 
 	manifest := EvidenceManifest{
-		Version:    "1.0 (Vouch 2026.1)",
+		Version:    "1.0 (Logryph 2026.1)",
 		RunID:      runID,
 		ExportTime: time.Now(),
 		RunStats:   stats,
@@ -111,10 +115,10 @@ func ExportEvidenceBag(zipPath, targetRunID string) error {
 
 	// 6. Add DB (Raw)
 	// We allow reading the DB even if locked by WAL, usually.
-	dbFile, err := os.Open("vouch.db")
+	dbFile, err := os.Open("logryph.db")
 	if err != nil {
 		// Try to read generic way if locked
-		return fmt.Errorf("opening vouch.db: %w", err)
+		return fmt.Errorf("opening logryph.db: %w", err)
 	}
 	defer func() {
 		if err := dbFile.Close(); err != nil {
@@ -122,7 +126,7 @@ func ExportEvidenceBag(zipPath, targetRunID string) error {
 		}
 	}()
 
-	destFile, err := w.Create("vouch.db")
+	destFile, err := w.Create("logryph.db")
 	if err != nil {
 		return err
 	}

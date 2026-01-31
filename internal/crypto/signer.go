@@ -9,7 +9,7 @@ import (
 )
 
 // Signer handles Ed25519 signing operations for cryptographic event integrity.
-// Private key is stored hex-encoded in a file (default .vouch_key).
+// Private key is stored hex-encoded in a file (default .logryph_key).
 // Thread-safe for concurrent signature operations.
 type Signer struct {
 	privateKey ed25519.PrivateKey

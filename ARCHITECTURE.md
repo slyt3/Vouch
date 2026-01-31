@@ -1,14 +1,14 @@
-# Vouch Systems Architecture
+# Logryph Systems Architecture
 
-This document is **optional**. Read it if you are reviewing design decisions, contributing to core modules, or doing a security/architecture review. If you just want to run Vouch, you can skip it.
+This document is **optional**. Read it if you are reviewing design decisions, contributing to core modules, or doing a security/architecture review. If you just want to run Logryph, you can skip it.
 
-Vouch (Associated Evidence Ledger) is a high-integrity forensic logger for AI agents, designed to meet NASA Power of Ten safety standards.
+Logryph (Associated Evidence Ledger) is a high-integrity forensic logger for AI agents, designed to meet NASA Power of Ten safety standards.
 
 ## Module Structure
 
 ```mermaid
 graph TD
-    CLI[cmd/vouch-cli] --> CMD[commands]
+    CLI[cmd/logryph-cli] --> CMD[commands]
     CMD --> AUDIT[internal/ledger/audit]
     CMD --> STORE[internal/ledger/store]
     CMD --> POOL[internal/pool]
@@ -43,7 +43,7 @@ graph TD
 
 ### 1. Silent Observer (`internal/interceptor`, `internal/observer`)
 *   **Role**: Passive interception of HTTP traffic between Agent and MCP Servers.
-*   **Logic**: Uses `ObserverEngine` to match requests against `vouch-policy.yaml`.
+*   **Logic**: Uses `ObserverEngine` to match requests against `logryph-policy.yaml`.
 *   **Dynamic Reloading**: Automatically polls the policy file for changes (5s interval) and updates rules without downtime.
 *   **Safety**: Zero-blocking logic. All policy actions are observational (tagging, risk scoring, redaction).
 *   **Models**: Converts HTTP requests into standardized `models.Event` structs.
@@ -61,7 +61,7 @@ graph TD
 *   **Mechanism**: Fixed-size Ring Buffer (`internal/ring`).
 *   **Behavior**: Non-blocking submission. If buffer is full, events are dropped (fail-open) with metrics increment, preserving agent availability.
 
-### 4. Forensic CLI (`cmd/vouch-cli`)
+### 4. Forensic CLI (`cmd/logryph-cli`)
 *   **Role**: Post-incident analysis and verification.
 *   **Commands**:
     *   `verify`: Validates the cryptographic integrity of the entire chain.
@@ -86,7 +86,7 @@ graph TD
 
 ## Directory Layout
 
-*   `cmd/vouch-cli`: CLI entry point and definitions.
+*   `cmd/logryph-cli`: CLI entry point and definitions.
 *   `internal/core`: State management and orchestration.
 *   `internal/models`: Shared data structures (`Event`).
 *   `internal/observer`: Rule loading and evaluation.

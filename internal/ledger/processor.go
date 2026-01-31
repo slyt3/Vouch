@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/crypto"
-	"github.com/slyt3/Vouch/internal/models"
-	"github.com/slyt3/Vouch/internal/pool"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/crypto"
+	"github.com/slyt3/Logryph/internal/models"
+	"github.com/slyt3/Logryph/internal/pool"
 )
 
 // EventProcessor handles the logic for hashing, signing, and state tracking
@@ -176,7 +176,7 @@ func (p *EventProcessor) createTaskCompletionEvent(taskID string, state string) 
 	event.ID = uuid.New().String()[:8]
 	event.Timestamp = time.Now()
 	event.EventType = "task_terminal"
-	event.Method = "vouch:task_state"
+	event.Method = "logryph:task_state"
 	if event.Params == nil {
 		event.Params = make(map[string]interface{})
 	}

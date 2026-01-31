@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/core"
-	"github.com/slyt3/Vouch/internal/ledger"
-	"github.com/slyt3/Vouch/internal/ledger/store"
-	"github.com/slyt3/Vouch/internal/pool"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/core"
+	"github.com/slyt3/Logryph/internal/ledger"
+	"github.com/slyt3/Logryph/internal/ledger/store"
+	"github.com/slyt3/Logryph/internal/pool"
 )
 
 const maxWaitTicks = 50
@@ -26,19 +26,19 @@ func TestHandlePrometheusIncludesQueueAndLatency(t *testing.T) {
 	waitForProcessed(t, worker, 1, 2*time.Second)
 
 	body := fetchPrometheusBody(t, engine)
-	if !strings.Contains(body, "vouch_ledger_queue_depth") {
+	if !strings.Contains(body, "logryph_ledger_queue_depth") {
 		t.Fatalf("missing queue depth metric")
 	}
-	if !strings.Contains(body, "vouch_ledger_queue_capacity") {
+	if !strings.Contains(body, "logryph_ledger_queue_capacity") {
 		t.Fatalf("missing queue capacity metric")
 	}
-	if !strings.Contains(body, "vouch_ledger_event_latency_seconds_bucket") {
+	if !strings.Contains(body, "logryph_ledger_event_latency_seconds_bucket") {
 		t.Fatalf("missing latency histogram bucket")
 	}
-	if !strings.Contains(body, "vouch_ledger_events_blocked_total") {
+	if !strings.Contains(body, "logryph_ledger_events_blocked_total") {
 		t.Fatalf("missing blocked events metric")
 	}
-	if !strings.Contains(body, "vouch_ledger_backpressure_mode") {
+	if !strings.Contains(body, "logryph_ledger_backpressure_mode") {
 		t.Fatalf("missing backpressure mode metric")
 	}
 }
@@ -51,10 +51,10 @@ func TestHandlePrometheusLatencyCountAndSum(t *testing.T) {
 	waitForProcessed(t, worker, 1, 2*time.Second)
 
 	body := fetchPrometheusBody(t, engine)
-	if !strings.Contains(body, "vouch_ledger_event_latency_seconds_sum") {
+	if !strings.Contains(body, "logryph_ledger_event_latency_seconds_sum") {
 		t.Fatalf("missing latency sum metric")
 	}
-	if !strings.Contains(body, "vouch_ledger_event_latency_seconds_count") {
+	if !strings.Contains(body, "logryph_ledger_event_latency_seconds_count") {
 		t.Fatalf("missing latency count metric")
 	}
 }
@@ -65,7 +65,7 @@ func setupTestEngine(t *testing.T) (*core.Engine, *ledger.Worker, func()) {
 		t.Fatalf("temp dir invalid: %v", err)
 	}
 
-	dbPath := filepath.Join(tempDir, "vouch_test.db")
+	dbPath := filepath.Join(tempDir, "logryph_test.db")
 	keyPath := filepath.Join(tempDir, "test.key")
 	if err := assert.Check(dbPath != "" && keyPath != "", "paths must not be empty"); err != nil {
 		t.Fatalf("paths invalid: %v", err)

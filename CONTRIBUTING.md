@@ -1,4 +1,4 @@
-# Contributing to Vouch
+# Contributing to Logryph
 
 We are building the safety layer for the Agentic Era. We welcome contributions from everyone, especially those with experience in security, cryptography, and distributed systems.
 
@@ -34,7 +34,7 @@ go test -v ./...
 4.  Open a Pull Request.
 
 ## Safety First
-Vouch is **safety-critical software**. All PRs must maintain or improve the safety score. Features that introduce memory leaks, race conditions, or unchecked errors will be rejected.
+Logryph is **safety-critical software**. All PRs must maintain or improve the safety score. Features that introduce memory leaks, race conditions, or unchecked errors will be rejected.
 
 ## Release Process (Maintainers Only)
 
@@ -87,18 +87,18 @@ If automated release fails, trigger manually:
 ### Release Artifacts
 
 Each release includes:
-- `vouch_<version>_<os>_<arch>.tar.gz` - Main proxy binary
-- `vouch-cli_<version>_<os>_<arch>.tar.gz` - CLI tool binary
+- `logryph_<version>_<os>_<arch>.tar.gz` - Main proxy binary
+- `logryph-cli_<version>_<os>_<arch>.tar.gz` - CLI tool binary
 - `checksums.txt` - SHA256 checksums for verification
-- `vouch-sbom.spdx.json` - Software Bill of Materials (supply chain security)
+- `logryph-sbom.spdx.json` - Software Bill of Materials (supply chain security)
 
 ### Verifying a Release
 
 Users can verify release integrity:
 ```bash
 # Download release and checksums
-wget https://github.com/[org]/vouch/releases/download/v0.1.0/vouch_0.1.0_linux_x86_64.tar.gz
-wget https://github.com/[org]/vouch/releases/download/v0.1.0/checksums.txt
+wget https://github.com/[org]/logryph/releases/download/v0.1.0/logryph_0.1.0_linux_x86_64.tar.gz
+wget https://github.com/[org]/logryph/releases/download/v0.1.0/checksums.txt
 
 # Verify checksum
 sha256sum -c checksums.txt --ignore-missing

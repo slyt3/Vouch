@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/core"
-	"github.com/slyt3/Vouch/internal/logging"
-	"github.com/slyt3/Vouch/internal/mcp"
-	"github.com/slyt3/Vouch/internal/observer"
-	"github.com/slyt3/Vouch/internal/pool"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/core"
+	"github.com/slyt3/Logryph/internal/logging"
+	"github.com/slyt3/Logryph/internal/mcp"
+	"github.com/slyt3/Logryph/internal/observer"
+	"github.com/slyt3/Logryph/internal/pool"
 )
 
 // PolicyAction defines the outcome of a policy check
@@ -328,7 +328,7 @@ func (i *Interceptor) InterceptResponse(resp *http.Response) error {
 }
 
 // SendErrorResponse is a no-op stub retained for backwards compatibility.
-// Phase 2 (Lobotomy) removed request blocking - Vouch now operates as a passive recorder.
+// Phase 2 (Lobotomy) removed request blocking - Logryph now operates as a passive recorder.
 // Does not send HTTP errors or block traffic.
 func (i *Interceptor) SendErrorResponse(req *http.Request, statusCode int, code int, message string) {
 	// Passive: We do not block. We just log the failure to record if needed.

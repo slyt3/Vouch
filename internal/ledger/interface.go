@@ -1,6 +1,6 @@
 package ledger
 
-import "github.com/slyt3/Vouch/internal/models"
+import "github.com/slyt3/Logryph/internal/models"
 
 // Stats related structs
 type RunStats struct {
@@ -17,7 +17,7 @@ type GlobalStats struct {
 	CriticalCount int    `json:"critical_count"`
 }
 
-// EventRepository defines the storage interface for the Vouch ledger.
+// EventRepository defines the storage interface for the Logryph ledger.
 // This allows swapping SQLite for Postgres/dqlite in the future without changing core logic.
 type EventRepository interface {
 	// Writer

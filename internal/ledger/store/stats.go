@@ -1,22 +1,24 @@
 package store
 
 import (
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/ledger"
+	"fmt"
+
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/ledger"
 )
 
 // GetRunStats returns statistics for a specific run
-func (db *DB) GetRunStats(runID string) (*ledger.RunStats, error) {
+func (db *DB) GetRunStats(runID string) (stats *ledger.RunStats, err error) {
 	if err := assert.Check(runID != "", "runID must not be empty"); err != nil {
 		return nil, err
 	}
-	stats := &ledger.RunStats{
+	stats = &ledger.RunStats{
 		RunID:         runID,
 		RiskBreakdown: make(map[string]int),
 	}
 
 	// Total and Blocked counts
-	err := db.conn.QueryRow(`
+	err = db.conn.QueryRow(`
 		SELECT COUNT(*), 
 		       COALESCE(SUM(CASE WHEN event_type = 'blocked' THEN 1 ELSE 0 END), 0),
 		       COALESCE(SUM(CASE WHEN event_type = 'tool_call' THEN 1 ELSE 0 END), 0)
@@ -33,7 +35,11 @@ func (db *DB) GetRunStats(runID string) (*ledger.RunStats, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("closing risk breakdown rows: %w", closeErr)
+		}
+	}()
 
 	const maxRiskLevels = 32
 	for i := 0; i < maxRiskLevels; i++ {

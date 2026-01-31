@@ -9,16 +9,20 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/ledger/store"
+	"github.com/slyt3/Logryph/internal/ledger/store"
 )
 
 func StatusCommand() {
 	// Open database
-	db, err := store.NewDB("vouch.db")
+	db, err := store.NewDB("logryph.db")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close database: %v", err)
+		}
+	}()
 
 	// Get current run ID
 	runID, err := db.GetRunID()
@@ -48,9 +52,13 @@ func StatusCommand() {
 func RekeyCommand() {
 	resp, err := http.Post("http://localhost:9998/api/rekey", "application/json", nil)
 	if err != nil {
-		log.Fatalf("Failed to contact Vouch API: %v", err)
+		log.Fatalf("Failed to contact Logryph API: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Failed to close rekey response: %v", err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -61,20 +69,20 @@ func RekeyCommand() {
 }
 
 // BackupKeyCommand creates a timestamped backup of the Ed25519 signing key.
-// Backup is saved as .vouch_key.backup.<timestamp> with restricted permissions (0600).
+// Backup is saved as .logryph_key.backup.<timestamp> with restricted permissions (0600).
 // This should be run before key rotation to ensure recovery capability.
 func BackupKeyCommand() {
 	const maxBackupName = 256
-	const keyPath = ".vouch_key"
+	const keyPath = ".logryph_key"
 
 	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
-		fmt.Println("Error: No key file found at .vouch_key")
+		fmt.Println("Error: No key file found at .logryph_key")
 		os.Exit(1)
 	}
 
 	// Generate backup filename with timestamp
 	timestamp := time.Now().UTC().Format("20060102T150405Z")
-	backupPath := fmt.Sprintf(".vouch_key.backup.%s", timestamp)
+	backupPath := fmt.Sprintf(".logryph_key.backup.%s", timestamp)
 
 	// Check backup name length
 	if len(backupPath) > maxBackupName {
@@ -100,11 +108,11 @@ func BackupKeyCommand() {
 }
 
 // RestoreKeyCommand restores a signing key from a backup file.
-// Moves current key to .vouch_key.old if it exists, then restores from backup.
-// Warning: This operation should only be done when Vouch is stopped.
+// Moves current key to .logryph_key.old if it exists, then restores from backup.
+// Warning: This operation should only be done when Logryph is stopped.
 func RestoreKeyCommand(backupPath string) {
 	const maxPath = 512
-	const keyPath = ".vouch_key"
+	const keyPath = ".logryph_key"
 
 	// Check path length
 	if len(backupPath) > maxPath {
@@ -163,7 +171,7 @@ func ListBackupsCommand() {
 	for i := 0; i < maxFiles && i < len(files); i++ {
 		fileCount++
 		file := files[i]
-		if filepath.Ext(file.Name()) == "" && len(file.Name()) > 17 && file.Name()[:17] == ".vouch_key.backup" {
+		if filepath.Ext(file.Name()) == "" && len(file.Name()) > 17 && file.Name()[:17] == ".logryph_key.backup" {
 			backups = append(backups, file)
 		}
 	}

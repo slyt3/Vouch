@@ -53,18 +53,22 @@ func main() {
 			name, _ := req.Params["name"].(string)
 			if name == "prod-users-v2" {
 				w.WriteHeader(http.StatusForbidden)
-				json.NewEncoder(w).Encode(map[string]interface{}{
+				if err := json.NewEncoder(w).Encode(map[string]interface{}{
 					"jsonrpc": "2.0",
 					"error":   map[string]interface{}{"code": -32000, "message": "Unauthorized: Production database deletion requires MFA"},
 					"id":      req.ID,
-				})
+				}); err != nil {
+					log.Printf("Failed to encode error response: %v", err)
+				}
 				return
 			}
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			if err := json.NewEncoder(w).Encode(map[string]interface{}{
 				"jsonrpc": "2.0",
 				"result":  map[string]interface{}{"status": "deleted", "database": name},
 				"id":      req.ID,
-			})
+			}); err != nil {
+				log.Printf("Failed to encode response: %v", err)
+			}
 		default:
 			http.Error(w, "Method not found", http.StatusNotFound)
 		}

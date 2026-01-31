@@ -3,7 +3,7 @@ package observer
 import (
 	"testing"
 
-	"github.com/slyt3/Vouch/internal/assert"
+	"github.com/slyt3/Logryph/internal/assert"
 )
 
 // FuzzMatchPattern tests pattern matching with random inputs

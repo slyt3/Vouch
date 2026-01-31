@@ -1,17 +1,17 @@
 # Key Management Guide
 
-This document describes how to manage Ed25519 signing keys used for cryptographic integrity of the Vouch ledger.
+This document describes how to manage Ed25519 signing keys used for cryptographic integrity of the Logryph ledger.
 
 ## Overview
 
-Vouch uses Ed25519 digital signatures to ensure tamper-evident ledger integrity. Each event is signed with a private key stored in `.vouch_key`. The corresponding public key is embedded in the ledger and used for verification.
+Logryph uses Ed25519 digital signatures to ensure tamper-evident ledger integrity. Each event is signed with a private key stored in `.logryph_key`. The corresponding public key is embedded in the ledger and used for verification.
 
 ## Key Lifecycle
 
 ### Initial Key Generation
 
-When Vouch starts for the first time, it automatically generates a new Ed25519 keypair:
-- Private key: Saved to `.vouch_key` (hex-encoded, 0600 permissions)
+When Logryph starts for the first time, it automatically generates a new Ed25519 keypair:
+- Private key: Saved to `.logryph_key` (hex-encoded, 0600 permissions)
 - Public key: Embedded in genesis block and run metadata
 
 No manual intervention required.
@@ -22,10 +22,10 @@ Rotate keys periodically or immediately after suspected compromise:
 
 ```bash
 # 1. Backup current key FIRST
-vouch-cli backup-key
+logryph-cli backup-key
 
-# 2. Rotate to new keypair (requires Vouch running)
-vouch-cli rekey
+# 2. Rotate to new keypair (requires Logryph running)
+logryph-cli rekey
 
 # Output shows old and new public keys:
 # {"old_public_key":"abc123...","new_public_key":"def456..."}
@@ -38,11 +38,11 @@ vouch-cli rekey
 Create timestamped backups before rotation or as part of regular maintenance:
 
 ```bash
-# Create backup (saves to .vouch_key.backup.<timestamp>)
-vouch-cli backup-key
+# Create backup (saves to .logryph_key.backup.<timestamp>)
+logryph-cli backup-key
 
 # Output:
-# Key backed up to: .vouch_key.backup.20260127T143022Z
+# Key backed up to: .logryph_key.backup.20260127T143022Z
 # Store this backup securely (offline storage recommended)
 ```
 
@@ -57,28 +57,28 @@ vouch-cli backup-key
 Restore from backup after key loss or corruption:
 
 ```bash
-# 1. Stop Vouch (REQUIRED - prevents key mismatch during signing)
-pkill vouch
+# 1. Stop Logryph (REQUIRED - prevents key mismatch during signing)
+pkill logryph
 
 # 2. List available backups
-vouch-cli list-backups
+logryph-cli list-backups
 
 # Output:
 # Key Backups
 # ===========
-# .vouch_key.backup.20260127T143022Z (64 bytes, 2026-01-27 14:30:22)
-# .vouch_key.backup.20260120T091500Z (64 bytes, 2026-01-20 09:15:00)
+# .logryph_key.backup.20260127T143022Z (64 bytes, 2026-01-27 14:30:22)
+# .logryph_key.backup.20260120T091500Z (64 bytes, 2026-01-20 09:15:00)
 
 # 3. Restore from specific backup
-vouch-cli restore-key .vouch_key.backup.20260127T143022Z
+logryph-cli restore-key .logryph_key.backup.20260127T143022Z
 
 # Output:
-# Existing key moved to: .vouch_key.old
+# Existing key moved to: .logryph_key.old
 # Key restored successfully
 # Warning: Chain verification will fail for events signed with the old key
 
-# 4. Restart Vouch
-./vouch
+# 4. Restart Logryph
+./logryph
 ```
 
 **Warning**: Restoring an old key after new events have been signed will break chain verification. Only restore if:
@@ -92,7 +92,7 @@ After key rotation, verify ledger integrity:
 
 ```bash
 # Full chain verification (checks all signatures)
-vouch-cli verify
+logryph-cli verify
 
 # If rotation was recent, verification will show:
 # - Events 0-N: Signed with old key (valid)
@@ -100,15 +100,15 @@ vouch-cli verify
 # Overall: PASS (both keys valid for their respective ranges)
 ```
 
-Vouch CLI handles multi-key verification automatically by extracting public keys from run metadata.
+Logryph CLI handles multi-key verification automatically by extracting public keys from run metadata.
 
 ## Security Considerations
 
 ### Key Storage
 
-- **DO**: Store `.vouch_key` with 0600 permissions (owner read/write only)
+- **DO**: Store `.logryph_key` with 0600 permissions (owner read/write only)
 - **DO**: Use full-disk encryption on systems storing keys
-- **DO NOT**: Commit `.vouch_key` to version control (already in .gitignore)
+- **DO NOT**: Commit `.logryph_key` to version control (already in .gitignore)
 - **DO NOT**: Share private keys via email, Slack, or unencrypted channels
 
 ### Key Rotation Triggers
@@ -125,14 +125,14 @@ Rotate keys proactively:
 
 ### Backup Security
 
-- Encrypt backups: `gpg -c .vouch_key.backup.<timestamp>`
+- Encrypt backups: `gpg -c .logryph_key.backup.<timestamp>`
 - Store offline: Air-gapped USB drives, hardware wallets, paper printouts
 - Geographically distribute: Keep backups in multiple physical locations
 - Test restores: Verify backup integrity quarterly
 
 ## Multi-Signature Setup (Future)
 
-Vouch currently uses single-key signing. Future versions may support:
+Logryph currently uses single-key signing. Future versions may support:
 - Threshold signatures (m-of-n keys required)
 - Hardware security modules (HSM) integration
 - Key splitting (Shamir secret sharing)
@@ -141,11 +141,11 @@ Vouch currently uses single-key signing. Future versions may support:
 
 ### "Failed to load key" error on startup
 
-Likely cause: `.vouch_key` deleted or corrupted.
+Likely cause: `.logryph_key` deleted or corrupted.
 
 Solution:
-1. Restore from backup: `vouch-cli restore-key <backup-file>`
-2. If no backup exists, Vouch will generate new key (WARNING: breaks chain verification for old events)
+1. Restore from backup: `logryph-cli restore-key <backup-file>`
+2. If no backup exists, Logryph will generate new key (WARNING: breaks chain verification for old events)
 
 ### "Signature verification failed" after restore
 
@@ -164,14 +164,14 @@ Recommendation: Rotate during maintenance windows. While rotation does not block
 
 ### Audit Trail
 
-Key operations are logged to Vouch structured logs:
+Key operations are logged to Logryph structured logs:
 ```json
 {"level":"info","component":"api","event":"rekey_success","old_pubkey":"abc...","new_pubkey":"def...","timestamp":"2026-01-27T14:30:22Z"}
 ```
 
 Filter key management events:
 ```bash
-cat vouch.log | grep rekey
+cat logryph.log | grep rekey
 ```
 
 ### Evidence Bag Exports
@@ -187,5 +187,5 @@ External auditors can verify signatures using only the public key (private key n
 
 - Ed25519 Specification: RFC 8032
 - Key Management Best Practices: NIST SP 800-57
-- Vouch Architecture: ARCHITECTURE.md
+- Logryph Architecture: ARCHITECTURE.md
 - Verification Process: INVESTIGATOR_GUIDE.md

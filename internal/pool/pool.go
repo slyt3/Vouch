@@ -5,8 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/models"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/models"
 )
 
 // Metrics tracks pool performance with hit/miss counters for events and buffers.
@@ -51,11 +51,6 @@ func GetEvent() *models.Event {
 		return &models.Event{}
 	}
 	e := eventPool.Get().(*models.Event)
-	// If it wasn't a new creation (miss), it's a hit
-	// This is a bit tricky with sync.Pool, but we can approximate miss count in New()
-	// and calculate hits as TotalRequest - Misses if we track requests.
-	// For simplicity, we'll increment hit here if we didn't just increment miss in New.
-	// However, New() is only called on miss. So we can just track misses in New().
 	atomic.AddUint64(&globalMetrics.EventHits, 1)
 	return e
 }

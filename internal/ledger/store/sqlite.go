@@ -34,13 +34,17 @@ func NewDB(dbPath string) (*DB, error) {
 
 	// Enable WAL mode for better concurrent performance
 	if _, err := conn.Exec("PRAGMA journal_mode=WAL"); err != nil {
-		conn.Close()
+		if closeErr := conn.Close(); closeErr != nil {
+			return nil, fmt.Errorf("enabling WAL mode: %v; closing database: %w", err, closeErr)
+		}
 		return nil, fmt.Errorf("enabling WAL mode: %w", err)
 	}
 
 	// Execute embedded schema
 	if _, err := conn.Exec(schemaSQL); err != nil {
-		conn.Close()
+		if closeErr := conn.Close(); closeErr != nil {
+			return nil, fmt.Errorf("executing schema: %v; closing database: %w", err, closeErr)
+		}
 		return nil, fmt.Errorf("executing schema: %w", err)
 	}
 

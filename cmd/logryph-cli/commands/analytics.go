@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/slyt3/Vouch/internal/assert"
-	"github.com/slyt3/Vouch/internal/ledger/store"
-	"github.com/slyt3/Vouch/internal/pool"
+	"github.com/slyt3/Logryph/internal/assert"
+	"github.com/slyt3/Logryph/internal/ledger/store"
+	"github.com/slyt3/Logryph/internal/pool"
 )
 
 func EventsCommand() {
@@ -22,14 +22,18 @@ func EventsCommand() {
 	_ = eventsFlags.Parse(os.Args[2:])
 
 	// Open database
-	db, err := store.NewDB("vouch.db")
+	db, err := store.NewDB("logryph.db")
 	if err := assert.Check(err == nil, "failed to open database: %v", err); err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 	if err := assert.Check(db != nil, "database handle is nil"); err != nil {
 		log.Fatalf("Database handle is nil")
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close database: %v", err)
+		}
+	}()
 
 	// Get current run ID
 	runID, err := db.GetRunID()
@@ -68,11 +72,15 @@ func EventsCommand() {
 }
 
 func StatsCommand() {
-	db, err := store.NewDB("vouch.db")
+	db, err := store.NewDB("logryph.db")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close database: %v", err)
+		}
+	}()
 
 	runID, _ := db.GetRunID()
 	if runID == "" {
@@ -129,7 +137,11 @@ func StatsCommand() {
 	client := http.Client{Timeout: 2 * time.Second}
 	resp, err := client.Get("http://localhost:9998/api/metrics")
 	if err == nil {
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.Printf("Failed to close metrics response: %v", err)
+			}
+		}()
 		var m pool.Metrics
 		if err := json.NewDecoder(resp.Body).Decode(&m); err == nil {
 			fmt.Println("\nMemory Infrastructure (Zero-Allocation Pools)")
@@ -150,11 +162,15 @@ func printPoolMetric(name string, hits, misses uint64) {
 }
 
 func RiskCommand() {
-	db, err := store.NewDB("vouch.db")
+	db, err := store.NewDB("logryph.db")
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close database: %v", err)
+		}
+	}()
 
 	risky, err := db.GetRiskEvents()
 	if err := assert.Check(err == nil, "failed to get risky events: %v", err); err != nil {
